@@ -78,9 +78,9 @@
   </section>
 
   <section class="card">
-    <h2>Brief summary (names redacted)</h2>
+    <h2>Brief summary (counts only)</h2>
     <div id="summary" class="empty">No brief yet.</div>
-    <div class="note">Only counts and generic headlines are shown. Names, clients and message text are never published here.</div>
+    <div class="note">Only counts are shown. Names, clients, subjects and message text are never published here.</div>
   </section>
 
   <section class="card">
@@ -166,11 +166,6 @@
         g2.appendChild(d);
       });
       sum.appendChild(g2);
-      if (b.headlines && b.headlines.length) {
-        var ul = make("ul", null, "heads");
-        b.headlines.slice(0, 6).forEach(function (h) { ul.appendChild(make("li", h)); });
-        sum.appendChild(ul);
-      }
     } else {
       sum.className = "empty";
       sum.textContent = "No brief yet.";
