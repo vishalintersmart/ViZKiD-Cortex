@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="y2k">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -271,13 +271,60 @@
   [data-theme="y2k"] .st-mark { color: #39ff88; }
   [data-theme="y2k"] .note { border-top-color: rgba(255,43,214,.4); }
 
+  /* ===== Live animations ===== */
+  .fx { display: none; }
+  .clock { margin-left: 14px; color: var(--muted); }
+  .clock b { color: var(--mint); font-weight: 500; }
+  .ticker { overflow: hidden; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-bottom: 22px;
+    font: 12px var(--mono); letter-spacing: .08em; color: var(--muted); text-transform: uppercase; white-space: nowrap;
+    background: rgba(255,255,255,.015); }
+  .tk-track { display: inline-flex; animation: ticker 60s linear infinite; padding: 7px 0; will-change: transform; }
+  .tk-track span { padding-right: 38px; }
+  .tk-track span b { color: var(--mint); font-weight: 500; }
+  @keyframes ticker { to { transform: translateX(-50%); } }
+  .pk { fill: rgb(var(--sec-rgb)); filter: drop-shadow(0 0 4px rgb(var(--sec-rgb))); opacity: .85; }
+  .pk.on { fill: var(--st-active); filter: drop-shadow(0 0 5px var(--st-active)); opacity: 1; }
+  .pk.work { fill: var(--st-working); filter: drop-shadow(0 0 5px var(--st-working)); opacity: 1; }
+  .fn .sd { animation: breathe 3.2s ease-in-out infinite; }
+  .fn.act .sd { animation: beat 1s ease-in-out infinite; }
+  @keyframes breathe { 50% { opacity: .35; } }
+  @keyframes beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.7); } }
+  .fn.hub .port.r::after { content: ""; position: absolute; inset: -2px; border-radius: inherit; border: 1px solid var(--port);
+    animation: ping 2s ease-out infinite; }
+  @keyframes ping { from { transform: scale(1); opacity: .9; } to { transform: scale(3.4); opacity: 0; } }
+
+  [data-theme="y2k"] .fx { display: block; position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;
+    background-image: linear-gradient(rgba(255,43,214,.09) 1px, transparent 1px); background-size: 100% 48px;
+    animation: gridscroll 7s linear infinite; }
+  [data-theme="y2k"] .fx::before { content: ""; position: absolute; width: 60vmax; height: 60vmax; left: -20vmax; top: -20vmax;
+    background: radial-gradient(circle, rgba(0,240,255,.13), transparent 60%); animation: drift 20s ease-in-out infinite alternate; }
+  [data-theme="y2k"] .fx::after { content: ""; position: absolute; width: 50vmax; height: 50vmax; right: -15vmax; bottom: -20vmax;
+    background: radial-gradient(circle, rgba(255,43,214,.14), transparent 60%); animation: drift2 24s ease-in-out infinite alternate; }
+  @keyframes gridscroll { to { background-position: 0 48px; } }
+  @keyframes drift { to { transform: translate(38vw, 26vh); } }
+  @keyframes drift2 { to { transform: translate(-34vw, -22vh); } }
+  [data-theme="y2k"] h1 { animation: glitch 7s steps(1) infinite; }
+  @keyframes glitch { 0%, 91%, 100% { transform: none; } 92% { transform: translate(-3px, 1px) skewX(-6deg); }
+    94% { transform: translate(3px, -1px) skewX(6deg); } 96% { transform: translate(-1px, 0); } }
+  [data-theme="y2k"] .tile { animation: tileglow 3.2s ease-in-out infinite; }
+  @keyframes tileglow { 50% { box-shadow: 0 0 22px rgba(var(--c), .85); } }
+  [data-theme="y2k"] .frame::after { content: ""; position: absolute; left: 0; right: 0; height: 90px; top: -90px; z-index: 2; pointer-events: none;
+    background: linear-gradient(180deg, transparent, rgba(0,240,255,.10) 45%, rgba(255,43,214,.18) 55%, transparent);
+    animation: sweep 5.5s linear infinite; }
+  @keyframes sweep { to { top: 100%; } }
+  [data-theme="y2k"] .ticker { border-color: rgba(255,43,214,.5); color: #9fe8ff; background: rgba(255,43,214,.05);
+    text-shadow: 0 0 8px rgba(0,240,255,.5); }
+  [data-theme="y2k"] .tk-track span b { color: #fcee0a; }
+  [data-theme="y2k"] .clock b { color: #fcee0a; text-shadow: 0 0 8px rgba(252,238,10,.6); }
+
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
-    .edge.on, .edge.work, .cursor, .chip b { animation: none !important; }
+    *, *::before, *::after { animation: none !important; }
   }
 </style>
 </head>
 <body>
+<div class="fx" aria-hidden="true"></div>
 <div class="app">
   <aside class="side">
     <div class="brand">&gt;_ AGENT<span>/</span>WEB<span class="cursor"></span></div>
@@ -289,20 +336,22 @@
   </aside>
 
   <main id="top">
-    <div class="crumb">~/agent-web / <b>fleet</b></div>
+    <div class="crumb">~/agent-web / <b>fleet</b><span class="clock" id="clock"></span></div>
     <div class="top">
       <div>
         <h1>Agent Fleet</h1>
         <div class="lead">Coordinate autonomous workers across your operation.</div>
       </div>
       <div class="tools">
-      <div class="themes" role="group" aria-label="Theme"><button type="button" data-theme-btn="academic" aria-pressed="true">Academic</button><button type="button" data-theme-btn="y2k" aria-pressed="false">Y2K</button></div>
+      <div class="themes" role="group" aria-label="Theme"><button type="button" data-theme-btn="academic" aria-pressed="false">Academic</button><button type="button" data-theme-btn="y2k" aria-pressed="true">Y2K</button></div>
       <label class="search">
         <span>$</span>
         <input id="q" type="search" placeholder="grep agents, roles, tags…" autocomplete="off" aria-label="Search agents">
       </label>
       </div>
     </div>
+
+    <div class="ticker" aria-hidden="true"><div class="tk-track" id="tkTrack"></div></div>
 
     <section class="kpis" id="kpis"></section>
 
@@ -315,7 +364,7 @@
         <span><i style="background:var(--st-active)"></i>running</span>
         <span><i style="background:var(--st-working)"></i>working</span>
         <span><i style="background:var(--off)"></i>idle</span>
-        <span class="chip"><b></b>live · 30s</span>
+        <span class="chip"><b></b><span id="liveTxt">live · 30s</span></span>
       </div>
     </div>
     <div class="frame" id="frame">
@@ -407,10 +456,10 @@
     var q = /[?&]theme=(\w+)/.exec(location.search);
     if (q && PALS[q[1]]) return q[1];
     try { var v = localStorage.getItem("aw-theme"); if (v && PALS[v]) return v; } catch (e) {}
-    return "academic";
+    return "y2k";
   }
   function applyTheme(name, init) {
-    if (!PALS[name]) name = "academic";
+    if (!PALS[name]) name = "y2k";
     var p = PALS[name];
     COLORS = p.colors; STATUS = p.status; KPI = p.kpi; HUB = p.hub; BL = p.brief;
     document.documentElement.setAttribute("data-theme", name);
@@ -575,8 +624,10 @@
       var pos = Array.isArray(a.pos) ? a.pos : DEF_POS[i];
       var k = stat(a);
       var meta = STATUS[k].label.toLowerCase() + ((a.tags && a.tags[0]) ? " · " + a.tags[0] : "");
-      nodes.appendChild(nodeEl(a.id, pos, COLORS[i % COLORS.length], "hex", a.name,
-        a.task || a.role || "Role to be defined", meta, STATUS[k].rgb, false, i));
+      var nel = nodeEl(a.id, pos, COLORS[i % COLORS.length], "hex", a.name,
+        a.task || a.role || "Role to be defined", meta, STATUS[k].rgb, false, i);
+      if (k === "active" || k === "working") nel.className += " act";
+      nodes.appendChild(nel);
     });
 
     var ids = ag.map(function (a) { return a.id; });
@@ -591,7 +642,9 @@
       var dx = Math.max(60, Math.abs(tx - sx) / 2);
       var ks = [byId[e[0]], byId[e[1]]].filter(Boolean).map(stat);
       var cls = "edge" + (ks.indexOf("active") > -1 ? " on" : ks.indexOf("working") > -1 ? " work" : "");
-      s("path", { "class": cls, d: "M" + sx + " " + sy + " C" + (sx + dx) + " " + sy + " " + (tx - dx) + " " + ty + " " + tx + " " + ty }, edges);
+      var pd = "M" + sx + " " + sy + " C" + (sx + dx) + " " + sy + " " + (tx - dx) + " " + ty + " " + tx + " " + ty;
+      s("path", { "class": cls, d: pd }, edges);
+      addPackets(edges, pd, ks);
     });
 
     var act = ag.filter(function (a) { var k = stat(a); return k === "active" || k === "working"; }).length;
@@ -671,7 +724,7 @@
       a.tasks_total = hist.length;
     });
   }
-  function renderAgents() { applyBrief(); drawKpis(); drawFlow(); drawWorkers(); fit(); }
+  function renderAgents() { applyBrief(); drawKpis(); drawFlow(); drawWorkers(); drawTicker(); fit(); }
 
   /* ---------- daily brief ---------- */
   var MARK = { done: "[ok]", running: "[..]", failed: "[!!]", pending: "[  ]", skipped: "[--]" };
@@ -745,6 +798,45 @@
     renderAgents();
   }
 
+  /* ---------- live bits ---------- */
+  var REDUCED = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  var nextRefresh = Date.now() + 30000;
+  function addPackets(parent, d, ks) {
+    if (REDUCED) return;
+    var on = ks.indexOf("active") > -1, work = !on && ks.indexOf("working") > -1;
+    var dur = on ? 1.8 : work ? 2.4 : 4.2;
+    var cls = "pk" + (on ? " on" : work ? " work" : "");
+    [0, 1].forEach(function (k) {
+      var c = s("circle", { "class": cls, r: (on || work) ? 3.6 : 2.8 }, parent);
+      s("animateMotion", { dur: dur + "s", repeatCount: "indefinite", path: d, begin: (-k * dur / 2) + "s" }, c);
+    });
+  }
+  function tick() {
+    var t = new Date().toLocaleTimeString("en-GB", { timeZone: TZ, hour12: false });
+    var c = el("clock"); clear(c);
+    c.appendChild(document.createTextNode("IST "));
+    c.appendChild(h("b", t));
+    var left = Math.max(0, Math.round((nextRefresh - Date.now()) / 1000));
+    el("liveTxt").textContent = "live · refresh in " + left + "s";
+  }
+  function drawTicker() {
+    var ag = data.agents.slice(0, 6);
+    var act = ag.filter(function (a) { var k = stat(a); return k === "active" || k === "working"; }).length;
+    var run = ag.filter(function (a) { return a.task; }).length;
+    var lr = brief && brief.last_run;
+    var items = [["system", "online"], ["agents", ag.length], ["active", act], ["tasks running", run],
+                 ["queue", (data.hub && data.hub.queue) || 0],
+                 ["last brief", lr ? fmt(lr.finished_at || lr.started_at) : "–"],
+                 ["next brief", brief && brief.next_run ? fmt(brief.next_run) : "–"]];
+    var tr = el("tkTrack"); clear(tr);
+    for (var r = 0; r < 6; r++) items.forEach(function (it) {
+      var sp = h("span");
+      sp.appendChild(document.createTextNode(it[0] + ": "));
+      sp.appendChild(h("b", it[1]));
+      tr.appendChild(sp);
+    });
+  }
+
   /* ---------- loading ---------- */
   function getJson(url) {
     return fetch(url + "?t=" + Date.now(), { cache: "no-store" })
@@ -768,10 +860,12 @@
   el("zin").addEventListener("click", function () { zoom = Math.min(1.6, Math.round((zoom + 0.1) * 10) / 10); fit(); });
   el("zout").addEventListener("click", function () { zoom = Math.max(0.5, Math.round((zoom - 0.1) * 10) / 10); fit(); });
   window.addEventListener("resize", fit);
+  tick();
+  setInterval(tick, 1000);
   renderAgents();
   loadAgents();
   loadBrief();
-  setInterval(function () { loadAgents(); loadBrief(); }, 30000);
+  setInterval(function () { nextRefresh = Date.now() + 30000; loadAgents(); loadBrief(); }, 30000);
 })();
 </script>
 </body>
