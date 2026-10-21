@@ -881,6 +881,11 @@
     g.addColorStop(0, "rgba(" + rgb + "," + a + ")"); g.addColorStop(1, "rgba(" + rgb + ",0)");
     ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
+  var LAND = [
+    [[-125,50],[-95,55],[-80,45],[-70,45],[-80,25],[-97,18],[-82,8],[-78,-5],[-70,-20],[-72,-50],[-60,-52],[-40,-22],[-35,-6],[-52,5],[-77,10],[-90,22],[-110,25],[-125,40]],
+    [[-15,30],[-5,36],[10,44],[30,60],[60,70],[100,75],[140,65],[150,45],[125,25],[110,10],[80,8],[55,25],[40,12],[50,-2],[40,-20],[20,-34],[10,-10],[8,5],[-15,12]],
+    [[115,-20],[130,-12],[150,-20],[150,-38],[115,-34]]
+  ];
   function windowView(x0, y0, x1, y1, z, t, earthDx, ring) {
     var a = P(x0, y1, z), b = P(x1, y0, z);
     if (!a || !b) return;
@@ -898,18 +903,46 @@
       ctx.fillRect(a[0] + ((s.x * 1.7) % 1) * w, a[1] + ((s.y * 1.3) % 1) * h * 0.85, s.r, s.r);
     }
     ctx.globalAlpha = 1;
-    var R = w * 1.6, cx = a[0] + w * (0.5 + earthDx), cy = b[1] + R * 0.78;
-    var eg = ctx.createRadialGradient(cx, cy, R * 0.86, cx, cy, R);
-    eg.addColorStop(0, "#041437"); eg.addColorStop(0.85, "#0d3f8c"); eg.addColorStop(1, "#4aa6ff");
+    var R = w * 1.25, cx = a[0] + w * (0.5 + earthDx), cy = b[1] + R * 0.62;
+    var eg = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.4, R * 0.1, cx, cy, R);
+    eg.addColorStop(0, "#2f78d6"); eg.addColorStop(0.6, "#0d3f8c"); eg.addColorStop(1, "#030c26");
     ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.fillStyle = eg; ctx.fill();
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.clip();
+    var lam0 = t * 0.045 + earthDx * 3, ph0 = 0.45, sp0 = Math.sin(ph0), cp0 = Math.cos(ph0);
+    for (i = 0; i < LAND.length; i++) {
+      var poly = LAND[i];
+      ctx.beginPath();
+      for (var q = 0; q < poly.length; q++) {
+        var la = poly[q][0] * PI / 180 - lam0, fi = poly[q][1] * PI / 180;
+        var X = Math.cos(fi) * Math.sin(la), Y = cp0 * Math.sin(fi) - sp0 * Math.cos(fi) * Math.cos(la);
+        var vis = sp0 * Math.sin(fi) + cp0 * Math.cos(fi) * Math.cos(la);
+        if (vis < 0) { var n = Math.sqrt(X * X + Y * Y) || 1; X /= n; Y /= n; }
+        if (q) ctx.lineTo(cx + X * R, cy - Y * R); else ctx.moveTo(cx + X * R, cy - Y * R);
+      }
+      ctx.closePath();
+      ctx.fillStyle = i === 2 ? "#8a6a3a" : "#2c7048"; ctx.globalAlpha = 0.6; ctx.fill();
+    }
+    ctx.globalAlpha = 0.22; ctx.fillStyle = "#fff";
+    for (i = 0; i < 9; i++) {
+      var ca = i * 2.1 + t * 0.03, cr = R * (0.35 + 0.6 * ((i * 0.37) % 1));
+      ctx.beginPath(); ctx.ellipse(cx + Math.cos(ca) * cr * 0.8, cy - R * 0.2 - Math.abs(Math.sin(ca * 1.3)) * cr * 0.9, R * 0.22, R * 0.035, 0.3 * Math.sin(i), 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    var tg = ctx.createRadialGradient(cx - R * 0.45, cy - R * 0.5, R * 0.2, cx, cy, R * 1.05);
+    tg.addColorStop(0, "rgba(0,0,0,0)"); tg.addColorStop(0.7, "rgba(2,6,24,.35)"); tg.addColorStop(1, "rgba(2,6,24,.85)");
+    ctx.fillStyle = tg; ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
     for (i = 0; i < 40; i++) {
       var l = lights[i];
       ctx.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(t * l.sp + l.ph));
-      ctx.fillStyle = "#ffd98a"; ctx.fillRect(a[0] + l.x * w, b[1] - h * 0.18 + l.y * h * 0.18, 1.4, 1.4);
+      ctx.fillStyle = "#ffd98a"; ctx.fillRect(a[0] + l.x * w, b[1] - h * 0.3 + l.y * h * 0.3, 1.6, 1.6);
     }
-    ctx.globalAlpha = 1;
-    ctx.beginPath(); ctx.arc(cx, cy, R, PI * 1.2, PI * 1.8); ctx.strokeStyle = "rgba(140,210,255,.9)"; ctx.lineWidth = 2.2;
-    ctx.shadowColor = "#5cc8ff"; ctx.shadowBlur = 18; ctx.stroke(); ctx.shadowBlur = 0;
+    ctx.restore(); ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, R, PI * 1.15, PI * 1.85); ctx.strokeStyle = "rgba(140,210,255,.95)"; ctx.lineWidth = 3;
+    ctx.shadowColor = "#5cc8ff"; ctx.shadowBlur = 22; ctx.stroke(); ctx.shadowBlur = 0;
+    var mx = a[0] + w * (0.22 + 0.03 * Math.sin(t * 0.1)), my = a[1] + h * 0.22, mr = w * 0.05;
+    var mg = ctx.createRadialGradient(mx - mr * 0.3, my - mr * 0.3, mr * 0.1, mx, my, mr);
+    mg.addColorStop(0, "#f2efe8"); mg.addColorStop(1, "#6d7280");
+    ctx.beginPath(); ctx.arc(mx, my, mr, 0, TAU); ctx.fillStyle = mg; ctx.fill();
     if (ring) {
       var sx = a[0] + w * 0.72, sy = a[1] + h * 0.32, rr = w * 0.1;
       ctx.save(); ctx.translate(sx, sy); ctx.rotate(-0.25);
@@ -1796,7 +1829,11 @@
       { cx: 4, amp: 12, z: -10.5, sp: 0.27, ph: 2.2, rgb: [255, 190, 110], crate: [90, 100, 120] },
       { cx: 0, amp: 14, z: -13, sp: 0.23, ph: 4.0, rgb: [150, 255, 190], crate: [255, 150, 36] },
       { cx: -6.6, amp: 1.7, z: 1.9, y: 6.92, s: 0.72, sp: 0.5, ph: 1.3, rgb: [255, 150, 200], crate: [255, 150, 36] },
-      { cx: 6.6, amp: 1.7, z: 1.9, y: 3.02, s: 0.72, sp: 0.42, ph: 3.1, rgb: [190, 160, 255], crate: null }
+      { cx: 6.6, amp: 1.7, z: 1.9, y: 3.02, s: 0.72, sp: 0.42, ph: 3.1, rgb: [190, 160, 255], crate: null },
+      { cx: -9, amp: 3, z: -6, sp: 0.35, ph: 5.0, s: 0.7, rgb: [255, 230, 150], crate: [255, 150, 36] },
+      { cx: 9, amp: 4, z: -6.5, sp: 0.29, ph: 0.9, s: 0.7, rgb: [150, 230, 255], crate: null },
+      { cx: -4, amp: 8, z: -15, sp: 0.2, ph: 2.9, s: 0.9, rgb: [255, 160, 160], crate: [90, 100, 120] },
+      { cx: 5, amp: 9, z: -16, sp: 0.18, ph: 1.7, s: 0.9, rgb: [200, 255, 160], crate: [196, 150, 90] }
     ];
     host.addEventListener("pointermove", function (e) {
       var r = host.getBoundingClientRect();
