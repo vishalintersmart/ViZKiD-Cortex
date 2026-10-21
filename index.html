@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Daily Email Brief Agent</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1b1f24; --muted: #667085;
+    --line: #e4e7ec; --ok: #12805c; --warn: #b54708; --bad: #b42318;
+    --info: #175cd3; --chip: #eef2f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1216; --card: #171b21; --text: #e8eaed; --muted: #98a2b3;
+      --line: #262c35; --ok: #4ac29a; --warn: #f7a45a; --bad: #f97066;
+      --info: #7ab1ff; --chip: #212730;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+  header { display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  h1 { font-size: 20px; margin: 0; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .card { background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px;
+    border-radius: 999px; font-size: 13px; font-weight: 600; background: var(--chip); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .s-success .dot { background: var(--ok); } .s-success { color: var(--ok); }
+  .s-running .dot { background: var(--info); animation: pulse 1.2s infinite; } .s-running { color: var(--info); }
+  .s-failed .dot { background: var(--bad); } .s-failed { color: var(--bad); }
+  .s-scheduled .dot { background: var(--warn); } .s-scheduled { color: var(--warn); }
+  @keyframes pulse { 50% { opacity: .3; } }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .stat .v { font-size: 22px; font-weight: 650; }
+  .stat .l { color: var(--muted); font-size: 12px; }
+  ol.steps { list-style: none; padding: 0; margin: 0; }
+  ol.steps li { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+  ol.steps li:first-child { border-top: 0; }
+  .mark { width: 18px; text-align: center; flex: none; }
+  ul.heads { margin: 8px 0 0; padding-left: 18px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 7px 6px; border-top: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; border-top: 0; }
+  .empty { color: var(--muted); }
+  .note { color: var(--muted); font-size: 12px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1 id="agent">Daily Email Brief Agent</h1>
+      <div class="sub" id="schedule"></div>
+    </div>
+    <span class="badge s-scheduled" id="state"><span class="dot"></span><span id="stateText">Loading…</span></span>
+  </header>
+
+  <section class="card">
+    <h2>Overview</h2>
+    <div class="grid">
+      <div class="stat"><div class="v" id="lastRun">–</div><div class="l">Last run</div></div>
+      <div class="stat"><div class="v" id="nextRun">–</div><div class="l">Next run</div></div>
+      <div class="stat"><div class="v" id="updated">–</div><div class="l">Page updated</div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Latest run</h2>
+    <div id="latest" class="empty">Waiting for the first run.</div>
+  </section>
+
+  <section class="card">
+    <h2>Brief summary (names redacted)</h2>
+    <div id="summary" class="empty">No brief yet.</div>
+    <div class="note">Only counts and generic headlines are shown. Names, clients and message text are never published here.</div>
+  </section>
+
+  <section class="card">
+    <h2>Recent runs</h2>
+    <div id="history" class="empty">No runs yet.</div>
+  </section>
+</main>
+
+<script>
+(function () {
+  var TZ = "Asia/Kolkata";
+  var el = function (id) { return document.getElementById(id); };
+
+  function fmt(iso, withDate) {
+    if (!iso) return "–";
+    var d = new Date(iso);
+    if (isNaN(d)) return "–";
+    var o = { timeZone: TZ, hour: "numeric", minute: "2-digit" };
+    if (withDate) { o.month = "short"; o.day = "numeric"; }
+    return d.toLocaleString("en-IN", o);
+  }
+  function make(tag, text, cls) {
+    var n = document.createElement(tag);
+    if (text != null) n.textContent = String(text);
+    if (cls) n.className = cls;
+    return n;
+  }
+  function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+  var ICON = { done: "✓", running: "…", failed: "✕", pending: "·", skipped: "–" };
+  var LABEL = { success: "Success", running: "Running", failed: "Failed", scheduled: "Scheduled" };
+
+  function render(s) {
+    el("agent").textContent = s.agent || "Daily Email Brief Agent";
+    el("schedule").textContent = s.schedule || "";
+    var st = LABEL[s.state] ? s.state : "scheduled";
+    el("state").className = "badge s-" + st;
+    el("stateText").textContent = LABEL[st];
+    var lr = s.last_run;
+    el("lastRun").textContent = lr ? fmt(lr.finished_at || lr.started_at, true) : "–";
+    el("nextRun").textContent = fmt(s.next_run, true);
+    el("updated").textContent = fmt(s.updated_at, true);
+
+    var latest = el("latest");
+    clear(latest);
+    if (lr) {
+      latest.className = "";
+      var g = make("div", null, "grid");
+      [[lr.threads_reviewed, "Threads reviewed"], [lr.unread, "Unread"],
+       [lr.delivered_to || "–", "Delivered to"]].forEach(function (p) {
+        var d = make("div", null, "stat");
+        d.appendChild(make("div", p[0] == null ? "–" : p[0], "v"));
+        d.appendChild(make("div", p[1], "l"));
+        g.appendChild(d);
+      });
+      latest.appendChild(g);
+      if (lr.steps && lr.steps.length) {
+        var ol = make("ol", null, "steps");
+        ol.style.marginTop = "12px";
+        lr.steps.forEach(function (step) {
+          var li = make("li");
+          li.appendChild(make("span", ICON[step.status] || "·", "mark"));
+          li.appendChild(make("span", step.label));
+          ol.appendChild(li);
+        });
+        latest.appendChild(ol);
+      }
+    } else {
+      latest.className = "empty";
+      latest.textContent = "Waiting for the first run.";
+    }
+
+    var sum = el("summary");
+    clear(sum);
+    var b = lr && lr.summary;
+    if (b) {
+      sum.className = "";
+      var g2 = make("div", null, "grid");
+      [[b.needs_action, "Need action"], [b.key_updates, "Key updates"],
+       [b.fyi, "FYI / automated"]].forEach(function (p) {
+        var d = make("div", null, "stat");
+        d.appendChild(make("div", p[0] == null ? "–" : p[0], "v"));
+        d.appendChild(make("div", p[1], "l"));
+        g2.appendChild(d);
+      });
+      sum.appendChild(g2);
+      if (b.headlines && b.headlines.length) {
+        var ul = make("ul", null, "heads");
+        b.headlines.slice(0, 6).forEach(function (h) { ul.appendChild(make("li", h)); });
+        sum.appendChild(ul);
+      }
+    } else {
+      sum.className = "empty";
+      sum.textContent = "No brief yet.";
+    }
+
+    var hist = el("history");
+    clear(hist);
+    if (s.history && s.history.length) {
+      hist.className = "";
+      var t = make("table");
+      var hr = make("tr");
+      ["Date", "Status", "Threads", "Need action"].forEach(function (h) { hr.appendChild(make("th", h)); });
+      t.appendChild(hr);
+      s.history.slice(0, 14).forEach(function (r) {
+        var tr = make("tr");
+        tr.appendChild(make("td", r.date));
+        tr.appendChild(make("td", LABEL[r.status] || r.status));
+        tr.appendChild(make("td", r.threads_reviewed == null ? "–" : r.threads_reviewed));
+        tr.appendChild(make("td", r.needs_action == null ? "–" : r.needs_action));
+        t.appendChild(tr);
+      });
+      hist.appendChild(t);
+    } else {
+      hist.className = "empty";
+      hist.textContent = "No runs yet.";
+    }
+  }
+
+  function load() {
+    fetch("status.json?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(render)
+      .catch(function () {
+        el("stateText").textContent = "Status unavailable";
+      });
+  }
+  load();
+  setInterval(load, 60000);
+})();
+</script>
+</body>
+</html>
