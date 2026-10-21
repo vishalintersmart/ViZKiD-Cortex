@@ -7,266 +7,451 @@
 <title>Agent Web</title>
 <style>
   :root {
-    --bg: #060a16; --bg2: #0c1530; --panel: rgba(14, 24, 52, .72);
-    --line: rgba(160, 180, 255, .16); --text: #e9edf9; --muted: #8e9ac0;
-    --red: #e5322d; --red-soft: rgba(229, 50, 45, .35);
-    --gold: #f4b942; --gold-soft: rgba(244, 185, 66, .3);
-    --navy: #17306b; --ok: #3ddc97; --off: #5a6585; --info: #7ab1ff;
+    --bg: #070c1f; --side: #0a1128; --card: #0d1530; --card2: #111a38;
+    --line: rgba(120, 140, 225, .15); --line2: rgba(120, 140, 225, .26);
+    --text: #e8ecfb; --muted: #8995bd; --faint: #5d6a94;
+    --indigo: #5865f2; --indigo-d: #4651d6; --green: #2fd9a0; --blue: #4d8dff;
+    --amber: #f2b640; --rose: #ff6b8a; --off: #4a5578;
   }
   * { box-sizing: border-box; }
-  html, body { height: 100%; }
+  html { scroll-behavior: smooth; }
   body {
-    margin: 0; color: var(--text);
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    background:
-      radial-gradient(1200px 700px at 50% 40%, var(--bg2) 0%, var(--bg) 70%),
-      var(--bg);
-    min-height: 100vh;
+    margin: 0; color: var(--text); background: var(--bg);
+    font: 14px/1.5 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 16px 40px; }
-  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
-    justify-content: space-between; margin-bottom: 14px; }
-  h1 { margin: 0; font-size: 22px; letter-spacing: .14em; text-transform: uppercase; }
-  h1 span { color: var(--red); }
-  .sub { color: var(--muted); font-size: 13px; }
-  .pills { display: flex; gap: 8px; flex-wrap: wrap; }
-  .pill { border: 1px solid var(--line); background: var(--panel); border-radius: 999px;
-    padding: 4px 12px; font-size: 12px; color: var(--muted); }
-  .pill b { color: var(--text); font-weight: 650; }
+  svg { display: block; }
+  .ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8;
+    stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
-  .layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr); gap: 16px; }
-  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
+  @media (max-width: 960px) { .app { grid-template-columns: 1fr; } }
 
-  .stage { border: 1px solid var(--line); border-radius: 16px; background: var(--panel);
-    padding: 8px; backdrop-filter: blur(4px); }
-  svg { width: 100%; height: auto; display: block; }
-  .ring, .spoke { fill: none; stroke: rgba(170, 190, 255, .20); stroke-width: 1; }
-  .spoke { stroke: rgba(170, 190, 255, .16); }
-  .thread { fill: none; stroke: var(--navy); stroke-width: 2; }
-  .thread.on { stroke: var(--red); stroke-width: 2.4; stroke-dasharray: 6 8;
-    animation: flow 1.4s linear infinite; filter: drop-shadow(0 0 4px var(--red)); }
-  .link { fill: none; stroke: var(--gold-soft); stroke-width: 1.2; stroke-dasharray: 3 7; }
-  @keyframes flow { to { stroke-dashoffset: -28; } }
-  @keyframes pulse { 0%,100% { opacity: .35; transform: scale(1); } 50% { opacity: .9; transform: scale(1.12); } }
+  /* Sidebar */
+  .side { background: var(--side); border-right: 1px solid var(--line); padding: 22px 12px;
+    position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 22px; }
+  @media (max-width: 960px) {
+    .side { position: static; height: auto; flex-direction: row; align-items: center;
+      padding: 10px 12px; overflow-x: auto; gap: 10px; border-right: 0; border-bottom: 1px solid var(--line); }
+    .side .foot-card { display: none; }
+  }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; font-weight: 700;
+    letter-spacing: .22em; font-size: 17px; white-space: nowrap; }
+  .brand .logo { color: var(--indigo); width: 30px; height: 30px; }
+  nav { display: flex; flex-direction: column; gap: 4px; }
+  @media (max-width: 960px) { nav { flex-direction: row; } }
+  nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px;
+    color: var(--muted); text-decoration: none; font-size: 14px; white-space: nowrap; }
+  nav a:hover { background: rgba(255,255,255,.04); color: var(--text); }
+  nav a.on { background: rgba(88, 101, 242, .2); color: #aeb6ff; box-shadow: inset 3px 0 0 var(--indigo); }
+  .foot-card { margin-top: auto; border: 1px solid var(--line); border-radius: 12px; padding: 12px;
+    background: var(--card); display: flex; align-items: center; gap: 10px; }
+  .foot-card .av { width: 34px; height: 34px; border-radius: 9px; background: rgba(88,101,242,.25);
+    color: #aeb6ff; display: grid; place-items: center; font-weight: 700; }
+  .foot-card .t { font-weight: 600; font-size: 13px; }
+  .foot-card .s { color: var(--muted); font-size: 12px; }
 
-  .node { cursor: pointer; outline: none; }
-  .node .halo { fill: none; stroke: var(--red); stroke-width: 2; opacity: 0;
-    transform-box: fill-box; transform-origin: center; }
-  .node.active .halo { opacity: .6; animation: pulse 1.8s ease-in-out infinite; }
-  .node .disc { fill: #0f1f4a; stroke: var(--gold); stroke-width: 2; transition: stroke .2s, fill .2s; }
-  .node.active .disc { stroke: var(--red); fill: #2a1424; }
-  .node.error .disc { stroke: #ff6b6b; fill: #3a1218; }
-  .node.offline .disc { stroke: var(--off); fill: #10172e; }
-  .node:hover .disc, .node:focus-visible .disc, .node.sel .disc { stroke-width: 3.5; fill: #14295f; }
-  .node.sel.active .disc { fill: #3a1a2c; }
-  .node .num { fill: var(--text); font-size: 16px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
-  .node .lbl { fill: var(--muted); font-size: 12px; text-anchor: middle; letter-spacing: .06em; }
-  .hub .disc { fill: #1a0f26; stroke: var(--red); stroke-width: 3; }
-  .hub .core { fill: var(--red); opacity: .9; }
-  .hub .lbl { fill: var(--text); font-size: 12px; text-anchor: middle; letter-spacing: .12em; }
+  /* Main */
+  main { padding: 24px 28px 48px; min-width: 0; }
+  @media (max-width: 640px) { main { padding: 18px 14px 40px; } }
+  .top { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
+  h1 { margin: 0; font-size: 30px; letter-spacing: -.01em; }
+  .lead { color: var(--muted); margin-top: 2px; }
+  .search { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line2);
+    background: var(--card); border-radius: 12px; padding: 0 14px; min-width: 280px; height: 42px; color: var(--muted); }
+  .search input { flex: 1; background: none; border: 0; outline: 0; color: var(--text); font: inherit; min-width: 0; }
+  .search input::placeholder { color: var(--faint); }
+  .search:focus-within { border-color: var(--indigo); }
 
-  aside { display: flex; flex-direction: column; gap: 12px; }
-  .card { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); padding: 14px; }
-  .card h2 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
-  .detail .name { font-size: 18px; font-weight: 650; }
-  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px;
-    font-weight: 600; border: 1px solid var(--line); margin-left: 8px; vertical-align: middle; }
-  .badge.active { color: #ffb4b1; border-color: var(--red-soft); background: rgba(229,50,45,.12); }
-  .badge.idle { color: var(--gold); border-color: var(--gold-soft); background: rgba(244,185,66,.08); }
-  .badge.error { color: #ff8f8f; border-color: rgba(255,107,107,.4); }
-  .badge.offline { color: var(--off); }
-  dl { margin: 12px 0 0; display: grid; grid-template-columns: 110px 1fr; gap: 6px 10px; font-size: 14px; }
-  dt { color: var(--muted); } dd { margin: 0; }
-  ul.list { list-style: none; margin: 0; padding: 0; }
-  ul.list li { display: flex; align-items: center; gap: 10px; padding: 8px 4px;
-    border-top: 1px solid var(--line); cursor: pointer; border-radius: 6px; }
-  ul.list li:first-child { border-top: 0; }
-  ul.list li:hover, ul.list li:focus-visible { background: rgba(255,255,255,.04); outline: none; }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); flex: none; }
-  .dot.active { background: var(--red); box-shadow: 0 0 8px var(--red); }
-  .dot.error { background: #ff6b6b; } .dot.offline { background: var(--off); }
-  ul.list .r { margin-left: auto; color: var(--muted); font-size: 12px; }
-  .foot { color: var(--muted); font-size: 12px; margin-top: 12px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
 
-  /* Daily Email Brief section */
-  .st { margin-top: 16px; }
-  .st-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .st-head h2 { margin: 0; font-size: 15px; letter-spacing: .1em; color: var(--text); }
-  .st-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 12px; border-radius: 999px;
-    font-size: 13px; font-weight: 600; border: 1px solid var(--line); background: rgba(255,255,255,.03); }
-  .st-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
-  .st-badge.s-success { color: var(--ok); } .st-badge.s-success .st-dot { background: var(--ok); }
-  .st-badge.s-running { color: var(--info); } .st-badge.s-running .st-dot { background: var(--info); animation: pulse 1.2s infinite; }
-  .st-badge.s-failed { color: #ff8f8f; } .st-badge.s-failed .st-dot { background: #ff6b6b; }
-  .st-badge.s-scheduled { color: var(--gold); } .st-badge.s-scheduled .st-dot { background: var(--gold); }
-  .st-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-  @media (max-width: 800px) { .st-cols { grid-template-columns: 1fr; } }
-  .st-sub { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 0 0 8px; }
-  .st-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 14px; }
-  .st-stat .v { font-size: 20px; font-weight: 650; }
+  /* KPIs */
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
+  @media (max-width: 1180px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .kpis { grid-template-columns: 1fr; } }
+  .kpi { display: flex; align-items: center; gap: 14px; padding: 16px; }
+  .tile { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; flex: none;
+    background: rgba(var(--c), .15); border: 1px solid rgba(var(--c), .3); color: rgb(var(--c)); }
+  .kpi .body { min-width: 0; flex: 1; }
+  .kpi .l { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .kpi .v { font-size: 28px; font-weight: 650; line-height: 1.15; letter-spacing: -.01em; white-space: nowrap; }
+  .kpi .v.lg { font-size: 20px; line-height: 1.5; }
+  .kpi .s { white-space: nowrap; }
+  .kpi .v small { font-size: 13px; font-weight: 500; color: var(--green); margin-left: 6px; }
+  .kpi .s { color: var(--muted); font-size: 12px; }
+  .kpi .spark { width: 64px; height: 38px; flex: none; }
+  @media (max-width: 1480px) { .kpi .spark { display: none; } }
+
+  /* Network panel */
+  .panel-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 16px 18px 0; }
+  .ph-l { display: flex; gap: 12px; align-items: center; }
+  .ph-l .ic { width: 26px; height: 26px; color: var(--indigo); }
+  .ph-l .t { font-size: 17px; font-weight: 600; }
+  .ph-l .s { color: var(--muted); font-size: 13px; }
+  .legend { display: flex; gap: 14px; align-items: center; color: var(--muted); font-size: 13px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line2); border-radius: 8px;
+    padding: 4px 10px; font-size: 12px; color: var(--green); }
+  .chip .ic { width: 14px; height: 14px; }
+  .netwrap { position: relative; margin: 8px 12px 12px; aspect-ratio: 1200 / 560; min-height: 300px; }
+  .netwrap svg.net { position: absolute; inset: 0; width: 100%; height: 100%; }
+  @media (max-width: 760px) { .netwrap { aspect-ratio: 1 / 1; } .tag { display: none !important; } }
+  .ring, .spoke { fill: none; stroke: rgba(140, 160, 245, .30); stroke-width: 1.1; }
+  .spoke { stroke: rgba(140, 160, 245, .24); }
+  .thread { fill: none; stroke: rgba(88, 101, 242, .5); stroke-width: 1.6; }
+  .thread.on { stroke: var(--green); stroke-width: 2; stroke-dasharray: 5 7; animation: flow 1.3s linear infinite; }
+  .thread.work { stroke: var(--blue); stroke-width: 2; stroke-dasharray: 5 7; animation: flow 1.3s linear infinite; }
+  .link { fill: none; stroke: rgba(120, 140, 225, .3); stroke-width: 1.1; stroke-dasharray: 3 6; }
+  @keyframes flow { to { stroke-dashoffset: -24; } }
+  @keyframes pulse { 0%,100% { opacity: .25; transform: scale(1); } 50% { opacity: .8; transform: scale(1.35); } }
+  .nd { cursor: pointer; outline: none; }
+  .nd .halo { transform-box: fill-box; transform-origin: center; opacity: .0; }
+  .nd.running .halo, .nd.working .halo { animation: pulse 2s ease-in-out infinite; opacity: .5; }
+  .nd .dsc { stroke-width: 2; transition: r .2s; }
+  .nd:hover .dsc, .nd:focus-visible .dsc, .nd.sel .dsc { stroke-width: 3.5; }
+  .nd text { fill: var(--text); font-size: 15px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .hubtxt { fill: #b9c1ef; font-size: 12px; letter-spacing: .16em; text-anchor: middle;
+    paint-order: stroke; stroke: #0d1530; stroke-width: 7px; stroke-linejoin: round; }
+
+  .tag { position: absolute; display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 8px;
+    border: 1px solid var(--line2); border-radius: 12px; background: rgba(10, 17, 40, .92);
+    backdrop-filter: blur(4px); width: 196px; cursor: pointer; text-align: left; color: inherit; font: inherit; }
+  .tag:hover, .tag.sel { border-color: var(--indigo); }
+  .tag .tile { width: 36px; height: 36px; border-radius: 10px; }
+  .tag .tn { font-weight: 600; font-size: 13px; line-height: 1.2; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .tag .ts { color: var(--muted); font-size: 12px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px; }
+  .tag .sd { width: 8px; height: 8px; border-radius: 50%; background: var(--c2, var(--off)); flex: none; }
+  .statbar { position: absolute; right: 8px; bottom: 6px; display: flex; gap: 0; border: 1px solid var(--line2);
+    border-radius: 10px; background: rgba(10,17,40,.9); font-size: 12px; color: var(--muted); overflow: hidden; }
+  .statbar span { padding: 7px 12px; border-left: 1px solid var(--line2); }
+  .statbar span:first-child { border-left: 0; }
+
+  /* Workers */
+  .sec-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 26px 0 12px; }
+  .sec-head .ph-l .t { font-size: 18px; }
+  .workers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 1180px) { .workers { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 640px) { .workers { grid-template-columns: 1fr; } }
+  .wk { padding: 16px; cursor: pointer; transition: border-color .15s; }
+  .wk:hover, .wk.sel { border-color: var(--indigo); }
+  .wk-top { display: flex; gap: 12px; align-items: flex-start; }
+  .wk-top .tile { width: 46px; height: 46px; }
+  .wk .nm { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 1px 9px; border-radius: 999px; font-size: 11px;
+    font-weight: 600; background: rgba(var(--c3), .13); color: rgb(var(--c3)); border: 1px solid rgba(var(--c3), .25); }
+  .badge i { width: 6px; height: 6px; border-radius: 50%; background: rgb(var(--c3)); }
+  .wk .ds { color: var(--muted); margin-top: 4px; min-height: 40px; }
+  .prog { display: flex; justify-content: space-between; font-size: 13px; margin: 12px 0 6px; }
+  .prog span:last-child { color: var(--muted); }
+  .bar { height: 7px; border-radius: 99px; background: rgba(255,255,255,.07); overflow: hidden; }
+  .bar b { display: block; height: 100%; border-radius: 99px; background: rgb(var(--c)); width: var(--w, 0%); }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+  .tg { border: 1px solid var(--line2); border-radius: 8px; padding: 3px 10px; font-size: 12px; color: var(--muted); background: rgba(255,255,255,.02); }
+  .wk-foot { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 13px; }
+  .wk-foot .ic { display: inline-block; width: 16px; height: 16px; margin-right: 6px; vertical-align: -3px; }
+  .wk-foot > .ic { margin: 0; }
+  .none { color: var(--muted); padding: 24px; text-align: center; grid-column: 1 / -1; }
+
+  /* Daily brief */
+  .brief { padding: 18px; }
+  .st-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 12px; border-radius: 999px; font-size: 13px;
+    font-weight: 600; background: rgba(var(--c3), .13); color: rgb(var(--c3)); border: 1px solid rgba(var(--c3), .25); }
+  .st-badge i { width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--c3)); }
+  .st-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 16px; }
+  @media (max-width: 860px) { .st-cols { grid-template-columns: 1fr; } }
+  .st-sub { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  .st-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .st-stat { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--card2); }
+  .st-stat .v { font-size: 19px; font-weight: 650; }
   .st-stat .l { color: var(--muted); font-size: 12px; }
-  ol.st-steps { list-style: none; padding: 0; margin: 0 0 14px; }
-  ol.st-steps li { display: flex; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  ol.st-steps { list-style: none; padding: 0; margin: 0 0 8px; }
+  ol.st-steps li { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); }
   ol.st-steps li:first-child { border-top: 0; }
-  .st-mark { width: 18px; text-align: center; flex: none; }
-  table.st-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  .st-table th, .st-table td { text-align: left; padding: 6px 4px; border-top: 1px solid var(--line); }
+  .st-mark { width: 18px; text-align: center; flex: none; color: var(--green); }
+  table.st-table { width: 100%; border-collapse: collapse; }
+  .st-table th, .st-table td { text-align: left; padding: 7px 4px; border-top: 1px solid var(--line); }
   .st-table th { color: var(--muted); font-weight: 600; font-size: 12px; border-top: 0; }
   .st-empty { color: var(--muted); }
-
+  .note { color: var(--faint); font-size: 12px; margin-top: 14px; }
   @media (prefers-reduced-motion: reduce) {
-    .thread.on, .node.active .halo, .st-badge.s-running .st-dot { animation: none; }
+    html { scroll-behavior: auto; }
+    .thread.on, .thread.work, .nd .halo { animation: none !important; }
   }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div>
-      <h1>Agent <span>Web</span></h1>
-      <div class="sub" id="sub">Six agents, one hub</div>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <svg class="ic logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12v-9M12 12l7.8-4.5M12 12l7.8 4.5M12 12v9M12 12l-7.8 4.5M12 12 4.2 7.5"/><circle cx="12" cy="12" r="2.2"/></svg>
+      AGENT&nbsp;WEB
     </div>
-    <div class="pills">
-      <span class="pill">Active <b id="pActive">0</b></span>
-      <span class="pill">Idle <b id="pIdle">0</b></span>
-      <span class="pill">Queue <b id="pQueue">0</b></span>
-      <span class="pill">Updated <b id="pUpdated">–</b></span>
+    <nav id="nav"></nav>
+    <div class="foot-card">
+      <div class="av">A</div>
+      <div><div class="t">Agent Web</div><div class="s">Six agents, roles pending</div></div>
     </div>
-  </header>
+  </aside>
 
-  <div class="layout">
-    <div class="stage">
-      <svg id="web" viewBox="0 0 800 800" role="img" aria-label="Spider-web diagram of the orchestrator and six agents"></svg>
-    </div>
-    <aside>
-      <section class="card detail" id="detail" aria-live="polite"></section>
-      <section class="card">
-        <h2>All agents</h2>
-        <ul class="list" id="list"></ul>
-        <div class="foot">Roles are placeholders until each agent is defined.</div>
-      </section>
-    </aside>
-  </div>
-
-  <section class="card st" id="brief">
-    <div class="st-head">
+  <main id="top">
+    <div class="top">
       <div>
-        <h2>Daily Email Brief</h2>
-        <div class="sub" id="stSchedule">Every day at 9:30 AM IST</div>
+        <h1>Agent Fleet</h1>
+        <div class="lead">Coordinate autonomous workers across your operation.</div>
       </div>
-      <span class="st-badge s-scheduled" id="stState"><span class="st-dot"></span><span id="stStateText">Loading…</span></span>
+      <label class="search">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3"/></svg>
+        <input id="q" type="search" placeholder="Search agents, roles, tags…" autocomplete="off" aria-label="Search agents">
+      </label>
     </div>
-    <div class="st-cols">
-      <div>
-        <h3 class="st-sub">Overview</h3>
-        <div class="st-grid">
-          <div class="st-stat"><div class="v" id="stLast">–</div><div class="l">Last run</div></div>
-          <div class="st-stat"><div class="v" id="stNext">–</div><div class="l">Next run</div></div>
-          <div class="st-stat"><div class="v" id="stUpdated">–</div><div class="l">Status updated</div></div>
+
+    <section class="kpis" id="kpis"></section>
+
+    <section class="card" id="network">
+      <div class="panel-head">
+        <div class="ph-l">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M12 12V3M12 12l7.8-4.5M12 12l7.8 4.5M12 12v9M12 12l-7.8 4.5M12 12 4.2 7.5"/><circle cx="12" cy="12" r="2.2"/></svg>
+          <div><div class="t">Agent Network</div><div class="s" id="netSub">Six agents around one orchestrator hub</div></div>
         </div>
-        <h3 class="st-sub">Latest run</h3>
-        <div id="stLatest" class="st-empty">Waiting for the first run.</div>
+        <div class="legend">
+          <span><i style="background:var(--green)"></i>Running</span>
+          <span><i style="background:var(--blue)"></i>Working</span>
+          <span><i style="background:var(--off)"></i>Idle</span>
+          <span class="chip"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Live · 30s</span>
+        </div>
       </div>
-      <div>
-        <h3 class="st-sub">Brief summary (counts only)</h3>
-        <div id="stSummary" class="st-empty" style="margin-bottom:14px">No brief yet.</div>
-        <h3 class="st-sub">Recent runs</h3>
-        <div id="stHistory" class="st-empty">No runs yet.</div>
+      <div class="netwrap" id="netwrap">
+        <svg class="net" id="net" viewBox="0 0 1200 560" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Spider-web diagram of the orchestrator and six agents"></svg>
+        <div id="tags"></div>
+        <div class="statbar" id="statbar"></div>
+      </div>
+    </section>
+
+    <div class="sec-head" id="workers-head">
+      <div class="ph-l">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>
+        <div><div class="t">Workers</div><div class="s">Autonomous AI agents working across your operation.</div></div>
       </div>
     </div>
-    <div class="foot">Only counts are shown. Names, clients, subjects and message text are never published here.</div>
-  </section>
+    <section class="workers" id="workers"></section>
+
+    <div class="sec-head" id="brief-head">
+      <div class="ph-l">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 7l8 6 8-6"/></svg>
+        <div><div class="t">Daily Email Brief</div><div class="s" id="stSchedule">Every day at 9:30 AM IST</div></div>
+      </div>
+      <span class="st-badge" id="stState" style="--c3:242,182,64"><i></i><span id="stStateText">Loading…</span></span>
+    </div>
+    <section class="card brief" id="brief">
+      <div class="st-cols">
+        <div>
+          <h3 class="st-sub">Overview</h3>
+          <div class="st-grid">
+            <div class="st-stat"><div class="v" id="stLast">–</div><div class="l">Last run</div></div>
+            <div class="st-stat"><div class="v" id="stNext">–</div><div class="l">Next run</div></div>
+            <div class="st-stat"><div class="v" id="stUpdated">–</div><div class="l">Status updated</div></div>
+          </div>
+          <h3 class="st-sub">Latest run</h3>
+          <div id="stLatest" class="st-empty">Waiting for the first run.</div>
+        </div>
+        <div>
+          <h3 class="st-sub">Brief summary (counts only)</h3>
+          <div id="stSummary" class="st-empty" style="margin-bottom:16px">No brief yet.</div>
+          <h3 class="st-sub">Recent runs</h3>
+          <div id="stHistory" class="st-empty">No runs yet.</div>
+        </div>
+      </div>
+      <div class="note">Only counts are shown. Names, clients, subjects and message text are never published here.</div>
+    </section>
+  </main>
 </div>
 
 <script>
 (function () {
   var NS = "http://www.w3.org/2000/svg";
-  var CX = 400, CY = 400, R_NODE = 262, R_OUT = 372, NODE_R = 36;
   var TZ = "Asia/Kolkata";
+  var W = 1200, H = 560, CX = 600, CY = 280, RX = 540, RY = 235;
+  var COLORS = ["47,217,160", "77,141,255", "242,182,64", "155,140,255", "255,122,144", "60,200,232"];
+  var STATUS = {
+    active:  { label: "Running", rgb: "47,217,160",  cls: "running" },
+    working: { label: "Working", rgb: "77,141,255",  cls: "working" },
+    idle:    { label: "Idle",    rgb: "138,149,189", cls: "idle" },
+    error:   { label: "Error",   rgb: "255,107,138", cls: "error" },
+    offline: { label: "Offline", rgb: "90,100,135",  cls: "offline" }
+  };
+  var ICONS = {
+    home: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
+    net: "M12 12V3M12 12l7.8-4.5M12 12l7.8 4.5M12 12v9M12 12l-7.8 4.5M12 12 4.2 7.5",
+    users: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
+    mail: "M4 5h16v14H4zM4 7l8 6 8-6",
+    layers: "M12 3 3 8l9 5 9-5zM3 13l9 5 9-5",
+    target: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z",
+    clock: "M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z",
+    bolt: "M13 2 4 14h7l-1 8 9-12h-7z",
+    hex: "M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",
+    pin: "M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11zM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
+    bars: "M6 20V10M12 20V4M18 20v-7"
+  };
+
   var FALLBACK = {
     system: { name: "Agent Web", updated_at: null },
     hub: { name: "Orchestrator", status: "idle", queue: 0 },
     agents: [1,2,3,4,5,6].map(function (n) {
-      return { id: "a" + n, name: "Agent 0" + n, role: "Role to be defined",
-               status: "idle", task: null, last_active: null, tasks_done: 0 };
+      return { id: "a" + n, name: "Agent 0" + n, role: "Role to be defined", status: "idle",
+               task: null, tags: [], last_active: null, tasks_done: 0, tasks_total: 0 };
     })
   };
-  var data = FALLBACK, selected = 0;
+  var data = FALLBACK, brief = null, selected = -1, query = "";
 
-  function s(tag, attrs, parent) {
-    var n = document.createElementNS(NS, tag);
-    for (var k in attrs) n.setAttribute(k, attrs[k]);
-    if (parent) parent.appendChild(n);
-    return n;
-  }
+  function el(id) { return document.getElementById(id); }
+  function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
   function h(tag, text, cls) {
     var n = document.createElement(tag);
     if (text != null) n.textContent = String(text);
     if (cls) n.className = cls;
     return n;
   }
-  function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
-  function pt(r, deg) {
-    var a = deg * Math.PI / 180;
-    return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
+  function s(tag, attrs, parent) {
+    var n = document.createElementNS(NS, tag);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
   }
-  function okStatus(v) { return ["active", "idle", "error", "offline"].indexOf(v) > -1 ? v : "idle"; }
+  function icon(name, cls) {
+    var svg = s("svg", { "class": "ic" + (cls ? " " + cls : ""), viewBox: "0 0 24 24", "aria-hidden": "true" });
+    s("path", { d: ICONS[name] }, svg);
+    return svg;
+  }
+  function stat(a) { var k = a && a.status; return STATUS[k] ? k : "idle"; }
   function fmt(iso) {
     if (!iso) return "–";
     var d = new Date(iso);
     if (isNaN(d)) return "–";
     return d.toLocaleString("en-IN", { timeZone: TZ, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   }
-  function el(id) { return document.getElementById(id); }
+  function tile(i, name) {
+    var t = h("div", null, "tile");
+    t.style.setProperty("--c", COLORS[i % COLORS.length]);
+    t.appendChild(icon(name || "hex"));
+    return t;
+  }
 
-  /* ---------- Agent web ---------- */
-  function drawWeb() {
-    var svg = el("web");
-    clear(svg);
-    var SPOKES = 12, rings = [60, 115, 170, 225, 280, 330, 372];
+  /* ---------- sidebar ---------- */
+  var NAV = [["Overview", "home", "top"], ["Agent Network", "net", "network"],
+             ["Workers", "users", "workers-head"], ["Daily Brief", "mail", "brief-head"]];
+  function buildNav() {
+    var nav = el("nav"); clear(nav);
+    NAV.forEach(function (n, i) {
+      var a = h("a"); a.href = "#" + n[2];
+      if (i === 0) a.className = "on";
+      a.appendChild(icon(n[1]));
+      a.appendChild(document.createTextNode(n[0]));
+      a.addEventListener("click", function () {
+        nav.querySelectorAll("a").forEach(function (x) { x.className = ""; });
+        a.className = "on";
+      });
+      nav.appendChild(a);
+    });
+  }
 
+  /* ---------- KPIs ---------- */
+  function spark(values, rgb) {
+    var svg = s("svg", { "class": "spark", viewBox: "0 0 96 38", "aria-hidden": "true" });
+    if (!values || values.length < 2) {
+      s("line", { x1: 2, y1: 30, x2: 94, y2: 30, stroke: "rgba(138,149,189,.4)", "stroke-width": 1.5, "stroke-dasharray": "3 5" }, svg);
+      return svg;
+    }
+    var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+    var span = max - min || 1, step = 92 / (values.length - 1);
+    var pts = values.map(function (v, i) { return [2 + i * step, 34 - ((v - min) / span) * 28]; });
+    var d = "M" + pts.map(function (p) { return p[0] + " " + p[1]; }).join(" L");
+    s("path", { d: d + " L94 38 L2 38 Z", fill: "rgba(" + rgb + ",.14)" }, svg);
+    s("path", { d: d, fill: "none", stroke: "rgb(" + rgb + ")", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" }, svg);
+    return svg;
+  }
+  function kpiCard(rgb, ic, label, value, sub, sp) {
+    var c = h("div", null, "card kpi");
+    var t = h("div", null, "tile"); t.style.setProperty("--c", rgb); t.appendChild(icon(ic));
+    c.appendChild(t);
+    var b = h("div", null, "body");
+    b.appendChild(h("div", label, "l"));
+    b.appendChild(h("div", value, "v" + (String(value).length > 8 ? " lg" : "")));
+    b.appendChild(h("div", sub, "s"));
+    c.appendChild(b);
+    c.appendChild(sp);
+    return c;
+  }
+  function drawKpis() {
+    var box = el("kpis"); clear(box);
+    var ag = data.agents.slice(0, 6);
+    var active = ag.filter(function (a) { var k = stat(a); return k === "active" || k === "working"; }).length;
+    var done = ag.reduce(function (t, a) { return t + (Number(a.tasks_done) || 0); }, 0);
+    var hist = (brief && brief.history) || [];
+    var ok = hist.filter(function (r) { return r.status === "success"; }).length;
+    var rate = hist.length ? Math.round(ok / hist.length * 100) + "%" : "–";
+    var flags = hist.slice(0, 14).reverse().map(function (r) { return r.status === "success" ? 1 : 0; });
+    var next = brief && brief.next_run ? fmt(brief.next_run) : "–";
+    box.appendChild(kpiCard("88,101,242", "users", "Active agents", active, "of " + ag.length + " provisioned", spark(null, "88,101,242")));
+    box.appendChild(kpiCard("155,140,255", "layers", "Tasks completed", done, "across all agents", spark(null, "155,140,255")));
+    box.appendChild(kpiCard("47,217,160", "target", "Brief success rate", rate, hist.length ? "last " + hist.length + " runs" : "no runs yet", spark(flags, "47,217,160")));
+    box.appendChild(kpiCard("77,141,255", "clock", "Next brief", next, "daily at 9:30 AM IST", spark(null, "77,141,255")));
+  }
+
+  /* ---------- network ---------- */
+  function ept(fx, fy, deg) {
+    var a = deg * Math.PI / 180;
+    return [CX + fx * RX * Math.cos(a), CY + fy * RY * Math.sin(a)];
+  }
+  function agentPos(i) { return ept(0.66, 0.72, -90 + i * 60); }
+
+  function drawNet() {
+    var svg = el("net"); clear(svg);
+    var defs = s("defs", {}, svg);
+    var dots = s("pattern", { id: "dots", width: 18, height: 18, patternUnits: "userSpaceOnUse" }, defs);
+    s("circle", { cx: 2, cy: 2, r: 1, fill: "rgba(130,150,235,.18)" }, dots);
+    var hg = s("radialGradient", { id: "hubg" }, defs);
+    s("stop", { offset: "0%", "stop-color": "#8a94ff", "stop-opacity": ".95" }, hg);
+    s("stop", { offset: "100%", "stop-color": "#5865f2", "stop-opacity": ".15" }, hg);
+    s("rect", { x: 0, y: 0, width: W, height: H, fill: "url(#dots)", opacity: .6 }, svg);
+
+    var SP = 12, fr = [.12, .24, .38, .52, .68, .84, 1];
     var g = s("g", {}, svg);
-    for (var i = 0; i < SPOKES; i++) {
-      var p = pt(R_OUT, -90 + i * 30);
+    for (var i = 0; i < SP; i++) {
+      var p = ept(1, 1, -90 + i * 30);
       s("line", { "class": "spoke", x1: CX, y1: CY, x2: p[0], y2: p[1] }, g);
     }
-    rings.forEach(function (r) {
-      for (var i = 0; i < SPOKES; i++) {
-        var a = pt(r, -90 + i * 30), b = pt(r, -90 + (i + 1) * 30);
-        var m = pt(r * 0.90, -90 + i * 30 + 15);
+    fr.forEach(function (f) {
+      for (var i = 0; i < SP; i++) {
+        var a = ept(f, f, -90 + i * 30), b = ept(f, f, -90 + (i + 1) * 30), m = ept(f * .9, f * .9, -90 + i * 30 + 15);
         s("path", { "class": "ring", d: "M" + a[0] + " " + a[1] + " Q" + m[0] + " " + m[1] + " " + b[0] + " " + b[1] }, g);
       }
     });
 
-    var agents = data.agents.slice(0, 6);
-    var pos = agents.map(function (_, i) { return pt(R_NODE, -90 + i * 60); });
-
+    var ag = data.agents.slice(0, 6), pos = ag.map(function (_, i) { return agentPos(i); });
     pos.forEach(function (p, i) {
-      var q = pos[(i + 1) % pos.length];
-      var mid = pt(R_NODE * 0.80, -90 + i * 60 + 30);
-      s("path", { "class": "link", d: "M" + p[0] + " " + p[1] + " Q" + mid[0] + " " + mid[1] + " " + q[0] + " " + q[1] }, svg);
+      var q = pos[(i + 1) % pos.length], m = ept(.5, .54, -90 + i * 60 + 30);
+      s("path", { "class": "link", d: "M" + p[0] + " " + p[1] + " Q" + m[0] + " " + m[1] + " " + q[0] + " " + q[1] }, svg);
     });
-    agents.forEach(function (a, i) {
-      var st = okStatus(a.status);
-      s("line", { "class": "thread" + (st === "active" ? " on" : ""), x1: CX, y1: CY, x2: pos[i][0], y2: pos[i][1] }, svg);
+    ag.forEach(function (a, i) {
+      var k = stat(a);
+      var cls = "thread" + (k === "active" ? " on" : k === "working" ? " work" : "");
+      s("line", { "class": cls, x1: CX, y1: CY, x2: pos[i][0], y2: pos[i][1] }, svg);
     });
 
-    var hub = s("g", { "class": "node hub" }, svg);
-    s("circle", { "class": "disc", cx: CX, cy: CY, r: 50 }, hub);
-    s("circle", { "class": "core", cx: CX, cy: CY, r: 10 }, hub);
-    var ht = s("text", { "class": "lbl", x: CX, y: CY + 74 }, hub);
+    s("circle", { cx: CX, cy: CY, r: 62, fill: "url(#hubg)" }, svg);
+    s("circle", { cx: CX, cy: CY, r: 30, fill: "#10183a", stroke: "#5865f2", "stroke-width": 2.5 }, svg);
+    s("circle", { cx: CX, cy: CY, r: 7, fill: "#aeb6ff" }, svg);
+    var ht = s("text", { "class": "hubtxt", x: CX, y: CY + 56 }, svg);
     ht.textContent = String((data.hub && data.hub.name) || "Orchestrator").toUpperCase();
 
-    agents.forEach(function (a, i) {
-      var st = okStatus(a.status);
-      var n = s("g", { "class": "node " + st + (i === selected ? " sel" : ""), tabindex: 0,
-                       role: "button", "aria-label": a.name + ", " + st }, svg);
-      s("circle", { "class": "halo", cx: pos[i][0], cy: pos[i][1], r: NODE_R + 8 }, n);
-      s("circle", { "class": "disc", cx: pos[i][0], cy: pos[i][1], r: NODE_R }, n);
-      var t = s("text", { "class": "num", x: pos[i][0], y: pos[i][1] }, n);
+    ag.forEach(function (a, i) {
+      var k = stat(a), rgb = STATUS[k].rgb;
+      var n = s("g", { "class": "nd " + STATUS[k].cls + (i === selected ? " sel" : ""), tabindex: 0, role: "button",
+                       "aria-label": a.name + ", " + STATUS[k].label }, svg);
+      s("circle", { "class": "halo", cx: pos[i][0], cy: pos[i][1], r: 30, fill: "none", stroke: "rgb(" + rgb + ")", "stroke-width": 2 }, n);
+      s("circle", { cx: pos[i][0], cy: pos[i][1], r: 38, fill: "rgba(" + rgb + ",.10)" }, n);
+      s("circle", { "class": "dsc", cx: pos[i][0], cy: pos[i][1], r: 24, fill: "#0f1838", stroke: "rgb(" + rgb + ")" }, n);
+      var t = s("text", { x: pos[i][0], y: pos[i][1] }, n);
       t.textContent = String(i + 1).padStart(2, "0");
-      var l = s("text", { "class": "lbl", x: pos[i][0], y: pos[i][1] + NODE_R + 20 }, n);
-      l.textContent = String(a.name).toUpperCase();
       n.addEventListener("click", function () { select(i); });
       n.addEventListener("keydown", function (e) {
         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(i); }
@@ -274,72 +459,107 @@
     });
   }
 
-  function drawDetail() {
-    var a = data.agents[selected], box = el("detail");
-    clear(box);
-    var st = okStatus(a.status);
-    var top = h("div");
-    top.appendChild(h("span", a.name, "name"));
-    top.appendChild(h("span", st, "badge " + st));
-    box.appendChild(top);
-    var dl = h("dl");
-    [["Role", a.role || "Role to be defined"],
-     ["Current task", a.task || "None"],
-     ["Last active", fmt(a.last_active)],
-     ["Tasks done", a.tasks_done == null ? 0 : a.tasks_done]].forEach(function (r) {
-      dl.appendChild(h("dt", r[0])); dl.appendChild(h("dd", r[1]));
-    });
-    box.appendChild(dl);
-  }
-
-  function drawList() {
-    var ul = el("list");
-    clear(ul);
+  function drawTags() {
+    var box = el("tags"); clear(box);
     data.agents.slice(0, 6).forEach(function (a, i) {
-      var st = okStatus(a.status);
-      var li = h("li"); li.tabIndex = 0;
-      li.appendChild(h("span", null, "dot " + st));
-      li.appendChild(h("span", a.name));
-      li.appendChild(h("span", a.role || "Role to be defined", "r"));
-      li.addEventListener("click", function () { select(i); });
-      li.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(i); }
-      });
-      ul.appendChild(li);
+      var p = agentPos(i), k = stat(a);
+      var b = h("button", null, "tag" + (i === selected ? " sel" : ""));
+      b.type = "button";
+      b.style.setProperty("--c2", "rgb(" + STATUS[k].rgb + ")");
+      b.appendChild(tile(i, "hex"));
+      var tx = h("div");
+      var nm = h("div", null, "tn");
+      nm.appendChild(h("span", a.name));
+      nm.appendChild(h("span", null, "sd"));
+      tx.appendChild(nm);
+      tx.appendChild(h("div", a.task || a.role || "Role to be defined", "ts"));
+      b.appendChild(tx);
+      var lx = p[0] / W * 100, ly = p[1] / H * 100, tr;
+      if (i === 0) tr = "translate(-50%, calc(-100% - 36px))";
+      else if (i === 3) tr = "translate(-50%, 36px)";
+      else if (i === 1 || i === 2) tr = "translate(44px, -50%)";
+      else tr = "translate(calc(-100% - 44px), -50%)";
+      b.style.left = lx + "%"; b.style.top = ly + "%"; b.style.transform = tr;
+      b.addEventListener("click", function () { select(i); });
+      box.appendChild(b);
     });
   }
 
-  function drawPills() {
-    var act = 0, idle = 0;
-    data.agents.forEach(function (a) {
-      var st = okStatus(a.status);
-      if (st === "active") act++; else if (st === "idle") idle++;
+  function drawStatbar() {
+    var ag = data.agents.slice(0, 6);
+    var act = ag.filter(function (a) { var k = stat(a); return k === "active" || k === "working"; }).length;
+    var run = ag.filter(function (a) { return a.task; }).length;
+    var bar = el("statbar"); clear(bar);
+    [ag.length + " agents", act + " active", run + " tasks running"].forEach(function (t) { bar.appendChild(h("span", t)); });
+  }
+
+  /* ---------- workers ---------- */
+  function matches(a) {
+    if (!query) return true;
+    var hay = [a.name, a.role, a.task].concat(a.tags || []).join(" ").toLowerCase();
+    return hay.indexOf(query) > -1;
+  }
+  function drawWorkers() {
+    var box = el("workers"); clear(box);
+    var shown = 0;
+    data.agents.slice(0, 6).forEach(function (a, i) {
+      if (!matches(a)) return;
+      shown++;
+      var k = stat(a), c = h("article", null, "card wk" + (i === selected ? " sel" : ""));
+      var rgb = COLORS[i % COLORS.length];
+      c.style.setProperty("--c", rgb);
+      var top = h("div", null, "wk-top");
+      top.appendChild(tile(i, "hex"));
+      var tx = h("div"); tx.style.minWidth = 0;
+      var nm = h("div", null, "nm");
+      nm.appendChild(h("span", a.name));
+      var bd = h("span", null, "badge"); bd.style.setProperty("--c3", STATUS[k].rgb);
+      bd.appendChild(h("i")); bd.appendChild(document.createTextNode(STATUS[k].label));
+      nm.appendChild(bd);
+      tx.appendChild(nm);
+      tx.appendChild(h("div", a.task || a.role || "Role to be defined", "ds"));
+      top.appendChild(tx);
+      c.appendChild(top);
+
+      var total = Number(a.tasks_total) || 0, done = Number(a.tasks_done) || 0;
+      var pct = total > 0 ? Math.min(100, Math.round(done / total * 100)) : 0;
+      var pr = h("div", null, "prog");
+      pr.appendChild(h("span", total > 0 ? done + " / " + total + " tasks" : "No tasks assigned"));
+      pr.appendChild(h("span", total > 0 ? pct + "%" : "–"));
+      c.appendChild(pr);
+      var bar = h("div", null, "bar"), fill = h("b");
+      fill.style.setProperty("--w", pct + "%");
+      bar.appendChild(fill); c.appendChild(bar);
+
+      var tg = h("div", null, "tags");
+      var tags = (a.tags && a.tags.length) ? a.tags : ["Role to be defined"];
+      tags.slice(0, 4).forEach(function (t) { tg.appendChild(h("span", t, "tg")); });
+      c.appendChild(tg);
+
+      var ft = h("div", null, "wk-foot");
+      var l = h("span");
+      l.appendChild(icon("clock"));
+      l.appendChild(document.createTextNode("Last active: " + fmt(a.last_active)));
+      ft.appendChild(l);
+      var bi = icon("bars"); bi.style.color = "rgb(" + rgb + ")"; bi.style.margin = "0";
+      ft.appendChild(bi);
+      c.appendChild(ft);
+      c.addEventListener("click", function () { select(i); });
+      box.appendChild(c);
     });
-    el("pActive").textContent = act;
-    el("pIdle").textContent = idle;
-    el("pQueue").textContent = (data.hub && data.hub.queue) || 0;
-    el("pUpdated").textContent = fmt(data.system && data.system.updated_at);
+    if (!shown) box.appendChild(h("div", "No agents match your search.", "none"));
   }
 
-  function select(i) { selected = i; drawWeb(); drawDetail(); }
-  function renderAgents() { drawWeb(); drawDetail(); drawList(); drawPills(); }
-
-  function loadAgents() {
-    fetch("agents.json?t=" + Date.now(), { cache: "no-store" })
-      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (d) {
-        if (d && Array.isArray(d.agents) && d.agents.length) {
-          data = d;
-          if (selected >= data.agents.length) selected = 0;
-          renderAgents();
-        }
-      })
-      .catch(function () {});
+  function select(i) {
+    selected = (selected === i) ? -1 : i;
+    drawNet(); drawTags(); drawWorkers();
   }
+  function renderAgents() { drawKpis(); drawNet(); drawTags(); drawStatbar(); drawWorkers(); }
 
-  /* ---------- Daily Email Brief ---------- */
+  /* ---------- daily brief ---------- */
   var ICON = { done: "✓", running: "…", failed: "✕", pending: "·", skipped: "–" };
-  var LABEL = { success: "Success", running: "Running", failed: "Failed", scheduled: "Scheduled" };
+  var BL = { success: ["Success", "47,217,160"], running: ["Running", "77,141,255"],
+             failed: ["Failed", "255,107,138"], scheduled: ["Scheduled", "242,182,64"] };
 
   function statGrid(pairs) {
     var g = h("div", null, "st-grid");
@@ -351,12 +571,12 @@
     });
     return g;
   }
-
   function renderBrief(b) {
+    brief = b;
     if (b.schedule) el("stSchedule").textContent = b.schedule;
-    var st = LABEL[b.state] ? b.state : "scheduled";
-    el("stState").className = "st-badge s-" + st;
-    el("stStateText").textContent = LABEL[st];
+    var st = BL[b.state] ? b.state : "scheduled";
+    el("stState").style.setProperty("--c3", BL[st][1]);
+    el("stStateText").textContent = BL[st][0];
     var lr = b.last_run;
     el("stLast").textContent = lr ? fmt(lr.finished_at || lr.started_at) : "–";
     el("stNext").textContent = fmt(b.next_run);
@@ -377,8 +597,7 @@
         latest.appendChild(ol);
       }
     } else {
-      latest.className = "st-empty";
-      latest.textContent = "Waiting for the first run.";
+      latest.className = "st-empty"; latest.textContent = "Waiting for the first run.";
     }
 
     var sum = el("stSummary"); clear(sum);
@@ -387,39 +606,47 @@
       sum.className = "";
       sum.appendChild(statGrid([[sm.needs_action, "Need action"], [sm.key_updates, "Key updates"], [sm.fyi, "FYI / automated"]]));
     } else {
-      sum.className = "st-empty";
-      sum.textContent = "No brief yet.";
+      sum.className = "st-empty"; sum.textContent = "No brief yet.";
     }
 
     var hist = el("stHistory"); clear(hist);
     if (b.history && b.history.length) {
       hist.className = "";
-      var t = h("table", null, "st-table");
-      var hr = h("tr");
+      var t = h("table", null, "st-table"), hr = h("tr");
       ["Date", "Status", "Threads", "Need action"].forEach(function (x) { hr.appendChild(h("th", x)); });
       t.appendChild(hr);
       b.history.slice(0, 14).forEach(function (r) {
         var tr = h("tr");
         tr.appendChild(h("td", r.date));
-        tr.appendChild(h("td", LABEL[r.status] || r.status));
+        tr.appendChild(h("td", BL[r.status] ? BL[r.status][0] : r.status));
         tr.appendChild(h("td", r.threads_reviewed == null ? "–" : r.threads_reviewed));
         tr.appendChild(h("td", r.needs_action == null ? "–" : r.needs_action));
         t.appendChild(tr);
       });
       hist.appendChild(t);
     } else {
-      hist.className = "st-empty";
-      hist.textContent = "No runs yet.";
+      hist.className = "st-empty"; hist.textContent = "No runs yet.";
     }
+    drawKpis();
   }
 
+  /* ---------- loading ---------- */
+  function getJson(url) {
+    return fetch(url + "?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+  }
+  function loadAgents() {
+    getJson("agents.json").then(function (d) {
+      if (d && Array.isArray(d.agents) && d.agents.length) { data = d; renderAgents(); }
+    }).catch(function () {});
+  }
   function loadBrief() {
-    fetch("status.json?t=" + Date.now(), { cache: "no-store" })
-      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(renderBrief)
+    getJson("status.json").then(renderBrief)
       .catch(function () { el("stStateText").textContent = "Status unavailable"; });
   }
 
+  buildNav();
+  el("q").addEventListener("input", function (e) { query = e.target.value.trim().toLowerCase(); drawWorkers(); });
   renderAgents();
   loadAgents();
   loadBrief();
