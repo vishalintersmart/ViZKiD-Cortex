@@ -321,7 +321,7 @@
   /* ===== Extra themes ===== */
   .themes { flex-wrap: nowrap; }
   .themes button { padding: 0 11px; }
-  @media (max-width: 1180px) { .themes { flex-wrap: wrap; height: auto; } .themes button { height: 38px; } }
+  
 
   /* --- Brutalism --- */
   [data-theme="brutalism"] {
@@ -380,146 +380,6 @@
   [data-theme="brutalism"] .fx { display: block; position: fixed; inset: 0; z-index: -1; pointer-events: none;
     background: repeating-linear-gradient(-45deg, rgba(17,17,17,.05) 0 2px, transparent 2px 14px); }
 
-  /* --- Cybercore: high-tech, hyper-modern HUD --- */
-  [data-theme="cybercore"] {
-    --bg: #02050c; --side: #040a16; --card: #061022; --card2: #081530;
-    --line: #12305c; --line2: #1d4f94; --text: #e4f0ff; --muted: #7f9cc4; --faint: #4d6a94;
-    --mint: #35a0ff; --blue: #c6ff3d; --amber: #ffd23d; --red: #ff4d6a; --violet: #7c8cff; --off: #3a5278;
-    --acc-rgb: 53,160,255; --sec-rgb: 198,255,61; --port: #c6ff3d; --st-active: #c6ff3d; --st-working: #35a0ff;
-    --serif: "Eurostile", "Bank Gothic", "Segoe UI", system-ui, sans-serif;
-    --mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
-  }
-  [data-theme="cybercore"] body { background-color: var(--bg);
-    background-image: radial-gradient(1000px 600px at 50% -10%, rgba(53,160,255,.18), transparent 65%),
-      linear-gradient(rgba(53,160,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(53,160,255,.05) 1px, transparent 1px);
-    background-size: auto, 32px 32px, 32px 32px; background-attachment: fixed; }
-  [data-theme="cybercore"] body::before { display: none; }
-  [data-theme="cybercore"] .side { background: linear-gradient(180deg, #061226, #02050c); border-right: 1px solid rgba(53,160,255,.4); }
-  [data-theme="cybercore"] .brand { letter-spacing: .24em; color: #fff; text-shadow: 0 0 12px rgba(53,160,255,.9); }
-  [data-theme="cybercore"] nav a { border-radius: 0; text-transform: uppercase; letter-spacing: .12em; font-size: 12px; }
-  [data-theme="cybercore"] nav a.on { background: linear-gradient(90deg, rgba(53,160,255,.22), transparent); color: #fff; }
-  [data-theme="cybercore"] .crumb b, [data-theme="cybercore"] .clock b { color: #c6ff3d; }
-  [data-theme="cybercore"] h1 { font: 300 44px/1.05 var(--serif); letter-spacing: .18em; text-transform: uppercase;
-    background: linear-gradient(90deg, #fff, #7fc4ff 60%, #c6ff3d); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  [data-theme="cybercore"] .lead { font: 12px var(--mono); letter-spacing: .08em; color: #7fc4ff; }
-  [data-theme="cybercore"] .search, [data-theme="cybercore"] .themes { border-radius: 0; border-color: rgba(53,160,255,.5); background: rgba(6,16,34,.8); }
-  [data-theme="cybercore"] .themes button[aria-pressed="true"] { background: rgba(53,160,255,.25); color: #fff; box-shadow: inset 0 -2px 0 #c6ff3d; }
-  [data-theme="cybercore"] .card { border: 1px solid rgba(53,160,255,.4); border-radius: 0; background: linear-gradient(160deg, rgba(10,24,52,.95), rgba(4,10,22,.95));
-    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px)); }
-  [data-theme="cybercore"] .kpi::before { background: #c6ff3d; box-shadow: 0 0 10px #c6ff3d; }
-  [data-theme="cybercore"] .tile { border-radius: 0; clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px)); }
-  [data-theme="cybercore"] .st { font: 300 20px/1.2 var(--serif); letter-spacing: .14em; text-transform: uppercase; }
-  [data-theme="cybercore"] .st em { color: #c6ff3d; font: 11px var(--mono); }
-  [data-theme="cybercore"] .frame { border-radius: 0; border: 1px solid rgba(53,160,255,.5); background-color: #030813;
-    background-image: radial-gradient(rgba(53,160,255,.3) 1px, transparent 1px); box-shadow: inset 0 0 70px rgba(53,160,255,.1), 0 0 30px rgba(53,160,255,.12); }
-  [data-theme="cybercore"] .edge { stroke-width: 1.4; filter: drop-shadow(0 0 3px rgba(198,255,61,.8)); }
-  [data-theme="cybercore"] .fn { border-radius: 0; background: rgba(6,14,30,.96); border: 1px solid rgba(var(--c), .6);
-    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); box-shadow: none; }
-  [data-theme="cybercore"] .fn:hover, [data-theme="cybercore"] .fn.sel { background: rgba(var(--c), .14); }
-  [data-theme="cybercore"] .fn .ico, [data-theme="cybercore"] .port, [data-theme="cybercore"] .zoom,
-  [data-theme="cybercore"] .badge, [data-theme="cybercore"] .tg, [data-theme="cybercore"] .st-badge, [data-theme="cybercore"] .st-stat,
-  [data-theme="cybercore"] .chip, [data-theme="cybercore"] .segs i { border-radius: 0; }
-  [data-theme="cybercore"] .segs i { transform: skewX(-24deg); }
-  [data-theme="cybercore"] .fn .nm { letter-spacing: .1em; text-transform: uppercase; }
-  [data-theme="cybercore"] .ticker { border-color: rgba(53,160,255,.4); color: #7fc4ff; letter-spacing: .16em; }
-  [data-theme="cybercore"] .fx { display: block; position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
-  [data-theme="cybercore"] .fx::before { content: ""; position: absolute; left: 0; right: 0; height: 2px; top: 0;
-    background: linear-gradient(90deg, transparent, rgba(198,255,61,.8), transparent); box-shadow: 0 0 18px rgba(198,255,61,.7);
-    animation: hscan 6s linear infinite; }
-  @keyframes hscan { from { transform: translateY(-10px); } to { transform: translateY(100vh); } }
-  [data-theme="cybercore"] .frame::after { content: ""; position: absolute; top: 0; bottom: 0; width: 80px; left: -80px; z-index: 2; pointer-events: none;
-    background: linear-gradient(90deg, transparent, rgba(53,160,255,.16), transparent); animation: vsweep 6s linear infinite; }
-  @keyframes vsweep { to { left: 100%; } }
-
-  /* --- Tenebrism: chiaroscuro, a single warm light in darkness --- */
-  [data-theme="tenebrism"] {
-    --bg: #050403; --side: #070504; --card: #0d0a07; --card2: #14100b;
-    --line: #2b2217; --line2: #43331f; --text: #efe0c4; --muted: #a39073; --faint: #6e5f48;
-    --mint: #e9b04b; --blue: #c4602f; --amber: #f2c76e; --red: #b8351f; --violet: #9a7650; --off: #54463a;
-    --acc-rgb: 233,176,75; --sec-rgb: 196,96,47; --port: #f2c76e; --st-active: #f2c76e; --st-working: #e07a3c;
-    --serif: "Playfair Display", "Iowan Old Style", Palatino, Georgia, serif;
-    --sans: Georgia, "Iowan Old Style", serif;
-  }
-  [data-theme="tenebrism"] body { background-color: var(--bg); background-image: none; }
-  [data-theme="tenebrism"] body::before { display: block; background: radial-gradient(ellipse at 70% 12%, transparent 0, rgba(0,0,0,.55) 75%); z-index: 40; }
-  [data-theme="tenebrism"] .side { background: linear-gradient(180deg, #0a0705, #030201); border-right: 1px solid #2b2217; }
-  [data-theme="tenebrism"] .brand { font-family: var(--serif); font-style: italic; letter-spacing: .1em; color: #f2c76e; }
-  [data-theme="tenebrism"] nav a.on { background: linear-gradient(90deg, rgba(233,176,75,.14), transparent); color: #f2c76e; }
-  [data-theme="tenebrism"] h1 { font: italic 400 54px/1.05 var(--serif); letter-spacing: -.01em; color: #f6dca6;
-    text-shadow: 0 0 40px rgba(233,176,75,.45), 0 2px 0 #000; }
-  [data-theme="tenebrism"] .lead { font: italic 15px var(--serif); color: #a39073; }
-  [data-theme="tenebrism"] .card { border-radius: 2px; border: 1px solid #2b2217;
-    background: radial-gradient(ellipse at 80% 0%, rgba(233,176,75,.10), transparent 60%), #0b0805;
-    box-shadow: 0 18px 40px rgba(0,0,0,.8), inset 0 1px 0 rgba(242,199,110,.12); }
-  [data-theme="tenebrism"] .st { font: italic 400 26px var(--serif); }
-  [data-theme="tenebrism"] .st em { color: #e9b04b; font-family: var(--mono); font-style: normal; }
-  [data-theme="tenebrism"] .search, [data-theme="tenebrism"] .themes { border-radius: 2px; border-color: #43331f; }
-  [data-theme="tenebrism"] .themes button[aria-pressed="true"] { background: rgba(233,176,75,.16); color: #f2c76e; }
-  [data-theme="tenebrism"] .kpi .v { font-family: var(--serif); color: #f6dca6; text-shadow: 0 0 22px rgba(233,176,75,.35); }
-  [data-theme="tenebrism"] .frame { border-radius: 2px; border: 1px solid #43331f; background-color: #040302;
-    background-image: radial-gradient(circle at 30% 45%, rgba(233,176,75,.14), transparent 55%); box-shadow: inset 0 0 90px #000; }
-  [data-theme="tenebrism"] .edge { stroke-width: 1.5; stroke: rgba(233,176,75,.45); }
-  [data-theme="tenebrism"] .fn { border-radius: 2px; background: #0d0a07; border: 1px solid rgba(var(--c), .45);
-    box-shadow: 0 10px 26px rgba(0,0,0,.85), 0 0 24px rgba(var(--c), .12); }
-  [data-theme="tenebrism"] .fn:hover, [data-theme="tenebrism"] .fn.sel { box-shadow: 0 10px 26px rgba(0,0,0,.85), 0 0 34px rgba(var(--c), .4); }
-  [data-theme="tenebrism"] .fn .nm { font-family: var(--serif); font-style: italic; font-size: 16px; }
-  [data-theme="tenebrism"] .fn .ico, [data-theme="tenebrism"] .tile, [data-theme="tenebrism"] .badge, [data-theme="tenebrism"] .tg,
-  [data-theme="tenebrism"] .st-badge, [data-theme="tenebrism"] .st-stat, [data-theme="tenebrism"] .chip, [data-theme="tenebrism"] .zoom { border-radius: 2px; }
-  [data-theme="tenebrism"] .ticker { border-color: #2b2217; color: #a39073; font-style: italic; text-transform: none; letter-spacing: .04em; }
-  [data-theme="tenebrism"] .fx { display: block; position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
-  [data-theme="tenebrism"] .fx::before { content: ""; position: absolute; width: 70vmax; height: 70vmax; left: 30vw; top: -30vmax;
-    background: radial-gradient(circle, rgba(233,176,75,.20), rgba(196,96,47,.06) 40%, transparent 65%); animation: candle 5s ease-in-out infinite alternate; }
-  @keyframes candle { 0% { opacity: .75; transform: translate(0,0) scale(1); } 30% { opacity: 1; } 60% { opacity: .82; } 100% { opacity: .95; transform: translate(-6vw,4vh) scale(1.08); } }
-
-  /* --- Glassmorphism --- */
-  [data-theme="glass"] {
-    --bg: #130f33; --side: rgba(255,255,255,.06); --card: rgba(255,255,255,.08); --card2: rgba(255,255,255,.12);
-    --line: rgba(255,255,255,.18); --line2: rgba(255,255,255,.28); --text: #f5f3ff; --muted: #c1bbe6; --faint: #948dc4;
-    --mint: #8fe3ff; --blue: #ff9ad5; --amber: #ffe08a; --red: #ff8a9b; --violet: #b9a2ff; --off: #8f89b8;
-    --acc-rgb: 143,227,255; --sec-rgb: 255,154,213; --port: #ffffff; --st-active: #8dffc9; --st-working: #8fe3ff;
-    --sans: "SF Pro Display", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --serif: var(--sans);
-  }
-  [data-theme="glass"] body { background-color: #130f33; background-attachment: fixed; background-size: cover; background-repeat: no-repeat;
-    background-image: linear-gradient(135deg, #2a1b6e 0%, #0e3a78 50%, #5b1d6e 100%); }
-  [data-theme="glass"] body::before { display: none; }
-  [data-theme="glass"] .side { background: rgba(255,255,255,.07); backdrop-filter: blur(22px) saturate(160%); -webkit-backdrop-filter: blur(22px) saturate(160%);
-    border-right: 1px solid rgba(255,255,255,.2); }
-  [data-theme="glass"] .brand { color: #fff; letter-spacing: .06em; }
-  [data-theme="glass"] nav a { border-radius: 12px; border-left: 0; }
-  [data-theme="glass"] nav a.on { background: rgba(255,255,255,.16); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
-  [data-theme="glass"] .foot-card { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); border-radius: 16px; }
-  [data-theme="glass"] h1 { font: 700 46px/1.05 var(--sans); letter-spacing: -.02em;
-    background: linear-gradient(90deg, #fff, #cfc2ff 50%, #8fe3ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  [data-theme="glass"] .lead { color: #d3ccf5; font-family: var(--sans); }
-  [data-theme="glass"] .search, [data-theme="glass"] .themes { border: 1px solid rgba(255,255,255,.25); border-radius: 14px; background: rgba(255,255,255,.08);
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
-  [data-theme="glass"] .themes button[aria-pressed="true"] { background: rgba(255,255,255,.2); color: #fff; }
-  [data-theme="glass"] .card { background: linear-gradient(145deg, rgba(255,255,255,.14), rgba(255,255,255,.05));
-    border: 1px solid rgba(255,255,255,.26); border-radius: 22px; box-shadow: 0 12px 40px rgba(8,4,40,.45), inset 0 1px 0 rgba(255,255,255,.35);
-    backdrop-filter: blur(20px) saturate(150%); -webkit-backdrop-filter: blur(20px) saturate(150%); }
-  [data-theme="glass"] .kpi::before { display: none; }
-  [data-theme="glass"] .tile { border-radius: 12px; }
-  [data-theme="glass"] .st { font-family: var(--sans); font-weight: 650; }
-  [data-theme="glass"] .frame { border-radius: 22px; border: 1px solid rgba(255,255,255,.26); background: rgba(10,6,40,.35);
-    background-image: radial-gradient(rgba(255,255,255,.22) 1px, transparent 1px);
-    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 12px 40px rgba(8,4,40,.4); }
-  [data-theme="glass"] .edge { stroke: rgba(255,255,255,.55); stroke-width: 1.8; }
-  [data-theme="glass"] .fn { border-radius: 18px; background: linear-gradient(145deg, rgba(255,255,255,.2), rgba(255,255,255,.07));
-    border: 1px solid rgba(255,255,255,.34); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    box-shadow: 0 10px 30px rgba(8,4,40,.4), inset 0 1px 0 rgba(255,255,255,.4); }
-  [data-theme="glass"] .fn:hover, [data-theme="glass"] .fn.sel { box-shadow: 0 10px 34px rgba(var(--c), .45), inset 0 1px 0 rgba(255,255,255,.5); }
-  [data-theme="glass"] .fn .ico { border-radius: 12px; }
-  [data-theme="glass"] .port { border-color: rgba(255,255,255,.7); }
-  [data-theme="glass"] .zoom { border-radius: 12px; background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.25); }
-  [data-theme="glass"] .badge, [data-theme="glass"] .tg, [data-theme="glass"] .st-badge, [data-theme="glass"] .st-stat, [data-theme="glass"] .chip { border-radius: 999px; }
-  [data-theme="glass"] .segs i { border-radius: 99px; }
-  [data-theme="glass"] .ticker { border-radius: 14px; border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.07); color: #d9d2fa; }
-  [data-theme="glass"] .fx { display: block; position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
-  [data-theme="glass"] .fx::before { content: ""; position: absolute; width: 55vmax; height: 55vmax; left: -10vmax; top: -10vmax; border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,120,200,.55), transparent 62%); filter: blur(30px); animation: drift 22s ease-in-out infinite alternate; }
-  [data-theme="glass"] .fx::after { content: ""; position: absolute; width: 50vmax; height: 50vmax; right: -12vmax; bottom: -14vmax; border-radius: 50%;
-    background: radial-gradient(circle, rgba(70,200,255,.5), transparent 62%); filter: blur(30px); animation: drift2 26s ease-in-out infinite alternate; }
 
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
@@ -547,7 +407,7 @@
         <div class="lead">Coordinate autonomous workers across your operation.</div>
       </div>
       <div class="tools">
-      <div class="themes" role="group" aria-label="Theme"><button type="button" data-theme-btn="y2k" aria-pressed="true">Y2K</button><button type="button" data-theme-btn="brutalism" aria-pressed="false">Brutal</button><button type="button" data-theme-btn="cybercore" aria-pressed="false">Cybercore</button><button type="button" data-theme-btn="tenebrism" aria-pressed="false">Tenebrism</button><button type="button" data-theme-btn="glass" aria-pressed="false">Glass</button></div>
+      <div class="themes" role="group" aria-label="Theme"><button type="button" data-theme-btn="y2k" aria-pressed="true">Y2K</button><button type="button" data-theme-btn="brutalism" aria-pressed="false">Brutal</button></div>
       <label class="search">
         <span>$</span>
         <input id="q" type="search" placeholder="grep agents, roles, tags…" autocomplete="off" aria-label="Search agents">
@@ -645,30 +505,6 @@
       hub: "17,17,17",
       brief: { success: ["Success", "0,166,81"], running: ["Running", "10,44,255"],
                failed: ["Failed", "212,0,0"], scheduled: ["Scheduled", "176,122,0"] }
-    },
-    cybercore: {
-      colors: ["53,160,255", "198,255,61", "124,140,255", "255,210,61", "80,230,200", "255,77,106"],
-      status: st("198,255,61", "53,160,255", "100,130,170", "255,77,106", "58,82,120"),
-      kpi: ["53,160,255", "198,255,61", "124,140,255", "255,210,61"],
-      hub: "198,255,61",
-      brief: { success: ["Success", "198,255,61"], running: ["Running", "53,160,255"],
-               failed: ["Failed", "255,77,106"], scheduled: ["Scheduled", "255,210,61"] }
-    },
-    tenebrism: {
-      colors: ["233,176,75", "196,96,47", "242,199,110", "154,118,80", "224,122,60", "184,53,31"],
-      status: st("242,199,110", "224,122,60", "130,112,88", "184,53,31", "84,70,58"),
-      kpi: ["233,176,75", "196,96,47", "242,199,110", "154,118,80"],
-      hub: "242,199,110",
-      brief: { success: ["Success", "242,199,110"], running: ["Running", "224,122,60"],
-               failed: ["Failed", "184,53,31"], scheduled: ["Scheduled", "154,118,80"] }
-    },
-    glass: {
-      colors: ["143,227,255", "255,154,213", "185,162,255", "255,224,138", "141,255,201", "255,170,120"],
-      status: st("141,255,201", "143,227,255", "170,164,210", "255,138,155", "143,137,184"),
-      kpi: ["143,227,255", "255,154,213", "185,162,255", "255,224,138"],
-      hub: "255,255,255",
-      brief: { success: ["Success", "141,255,201"], running: ["Running", "143,227,255"],
-               failed: ["Failed", "255,138,155"], scheduled: ["Scheduled", "255,224,138"] }
     },
     y2k: {
       colors: ["255,43,214", "0,240,255", "252,238,10", "138,92,255", "57,255,136", "255,120,40"],
