@@ -638,7 +638,7 @@
   var PI = Math.PI, TAU = PI * 2, CYC = 56, T_LAUNCH = 42;
   var cv, ctx, W = 0, H = 0, CX = 0, CY = 0, DPR = 1, raf = 0, on = false, ready = false, last = 0, clock = 0;
   var hud = {}, lblWrap, agents = [], labels = [], meta = {}, px = 0, py = 0, tpx = 0, tpy = 0;
-  var sparks = [], smoke = [], stars = [], lights = [], clouds = [], ambient = [], vstate = {};
+  var bloomCv = null, bloomCtx = null, sparks = [], smoke = [], stars = [], lights = [], clouds = [], ambient = [], vstate = {};
   var lastKey = "", SC = 30, lowQ = false, ema = 0.016, nfr = 0, forceHi = /[?&]q=hi/.test(location.search);
 
   /* ---------- affine matrices (3x4, row-major) ---------- */
@@ -1653,6 +1653,19 @@
       }
     }
     overlay(dt, t, { fr: rs.fr, rise: rise, pod: true });
+    // bloom post-process: blurred, brightened low-res copy added back
+    if (!lowQ && ctx.filter !== undefined) {
+      if (!bloomCv) { bloomCv = document.createElement("canvas"); bloomCtx = bloomCv.getContext("2d"); }
+      var bw = Math.max(64, Math.round(cv.width / 5)), bh = Math.max(64, Math.round(cv.height / 5));
+      if (bloomCv.width !== bw) { bloomCv.width = bw; bloomCv.height = bh; }
+      bloomCtx.filter = "none"; bloomCtx.globalCompositeOperation = "copy";
+      bloomCtx.filter = "brightness(1.15) contrast(1.5) blur(5px)";
+      bloomCtx.drawImage(cv, 0, 0, bw, bh);
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = 0.55;
+      ctx.drawImage(bloomCv, 0, 0, cv.width, cv.height);
+      ctx.restore();
+    }
     // cinematic vignette
     var vg = ctx.createRadialGradient(CX, CY, H * 0.35, CX, CY, Math.max(W, H) * 0.75);
     vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,.5)");
@@ -1835,11 +1848,6 @@
       { cx: -4, amp: 8, z: -15, sp: 0.2, ph: 2.9, s: 0.9, rgb: [255, 160, 160], crate: [90, 100, 120] },
       { cx: 5, amp: 9, z: -16, sp: 0.18, ph: 1.7, s: 0.9, rgb: [200, 255, 160], crate: [196, 150, 90] }
     ];
-    host.addEventListener("pointermove", function (e) {
-      var r = host.getBoundingClientRect();
-      tpx = clamp((e.clientX - r.left) / r.width * 2 - 1, -1, 1); tpy = clamp((e.clientY - r.top) / r.height * 2 - 1, -1, 1);
-    });
-    host.addEventListener("pointerleave", function () { tpx = 0; tpy = 0; });
     if (window.ResizeObserver) new ResizeObserver(resize).observe(host); else window.addEventListener("resize", resize);
   }
 
