@@ -285,7 +285,7 @@
       <div class="navlbl">Contents</div>
       <nav id="nav"></nav>
     </div>
-    <div class="foot-card"><b>agent-web</b> v0.1<br>6 agents · roles pending</div>
+    <div class="foot-card"><b>agent-web</b> v0.1<br>6 agents · 1 role defined</div>
   </aside>
 
   <main id="top">
@@ -659,7 +659,19 @@
   }
 
   function select(i) { selected = (selected === i) ? -1 : i; drawFlow(); drawWorkers(); }
-  function renderAgents() { drawKpis(); drawFlow(); drawWorkers(); fit(); }
+  function applyBrief() {
+    if (!brief) return;
+    data.agents.forEach(function (a) {
+      if (a.source !== "brief") return;
+      var lr = brief.last_run, hist = brief.history || [];
+      a.status = brief.state === "running" ? "working" : brief.state === "failed" ? "error" : "idle";
+      a.task = brief.state === "running" ? "Building today's brief" : null;
+      a.last_active = lr ? (lr.finished_at || lr.started_at) : null;
+      a.tasks_done = hist.filter(function (r) { return r.status === "success"; }).length;
+      a.tasks_total = hist.length;
+    });
+  }
+  function renderAgents() { applyBrief(); drawKpis(); drawFlow(); drawWorkers(); fit(); }
 
   /* ---------- daily brief ---------- */
   var MARK = { done: "[ok]", running: "[..]", failed: "[!!]", pending: "[  ]", skipped: "[--]" };
@@ -730,7 +742,7 @@
     } else {
       hist.className = "st-empty"; hist.textContent = "// no runs yet";
     }
-    drawKpis();
+    renderAgents();
   }
 
   /* ---------- loading ---------- */
