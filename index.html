@@ -525,6 +525,7 @@
     *, *::before, *::after { animation: none !important; }
   }
 </style>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/addons/"}}</script>
 </head>
 <body>
 <div class="fx" aria-hidden="true"></div>
@@ -1613,8 +1614,41 @@
   function setText(node, s) { if (node && node.textContent !== s) node.textContent = s; }
 
   /* ---------- frame ---------- */
+  var s3mounted = false, s3tried = false, clockInit = false;
+  function s3ready() { return !!(window.Space3D && window.Space3D.ready); }
+  function load3d() {
+    if (s3tried) return; s3tried = true;
+    try {
+      var c = document.createElement("canvas");
+      if (!(c.getContext("webgl2") || c.getContext("webgl"))) return;
+      import("./space3d.js").catch(function (e) { if (window.console) console.warn("3D scene unavailable, using 2D fallback", e); });
+    } catch (e) { /* keep 2D */ }
+  }
+  function placeLabels3() {
+    var i, a, pt, d;
+    for (i = 0; i < labels.length; i++) {
+      a = agents[i]; d = labels[i]; pt = a && a.scr;
+      if (!pt || !pt[2]) { d.style.display = "none"; continue; }
+      d.style.display = "";
+      d.style.transform = "translate(" + Math.round(clamp(pt[0], 74, W - 74)) + "px," + Math.round(clamp(pt[1] - 6, 140, H)) + "px) translate(-50%,-100%)";
+    }
+  }
   function frame(tcRaw, dt, now) {
     var tc = tcRaw % CYC, t = now;
+    if (s3ready()) {
+      var tl3 = tc - T_LAUNCH, rise3 = tl3 > 0 ? 0.5 * 1.45 * tl3 * tl3 : 0, off3 = 0;
+      if (tc >= 31 && tc < 53) off3 = ease((tc - 31) / 4) * 1.4;
+      if (tc >= 53) off3 = 1.4 * (1 - ease((tc - 53) / 3));
+      if (cv.style.display !== "none") cv.style.display = "none";
+      if (!s3mounted) { host.insertBefore(window.Space3D.canvas, host.firstChild); s3mounted = true; }
+      var out3 = window.Space3D.render({ tc: tc, dt: dt, t: t, rise: rise3, off: off3, agents: agents, W: W, H: H, DPR: lowQ ? 1 : Math.min(1.5, window.devicePixelRatio || 1), bottom: W > 980 ? 205 : (W > 700 ? 140 : 24) });
+      if (out3) {
+        var ph3 = phaseInfo(tc), q;
+        for (q = 0; q < agents.length; q++) agents[q].scr = out3.scr[q];
+        placeLabels3(); updateHud(tc, ph3, { fr: out3.fr }, rise3, tl3);
+        return;
+      }
+    }
     tNow = t;
     var ph = phaseInfo(tc);
     var tl = tc - T_LAUNCH, rise = tl > 0 ? 0.5 * 1.45 * tl * tl : 0;
@@ -1816,11 +1850,12 @@
     raf = 0;
     if (!on) return;
     var dt = last ? Math.min(0.05, (ts - last) / 1000) : 0.016; last = ts;
+    if (!clockInit) { clockInit = true; var m0 = location.search.match(/[?&]t0=([\d.]+)/); if (m0) clock = parseFloat(m0[1]); }
     var r = host.getBoundingClientRect(), vis = !document.hidden && r.bottom > 0 && r.top < (window.innerHeight || 800);
     if (vis) {
       clock += dt; frame(clock, dt, ts / 1000);
       ema = ema * 0.96 + dt * 0.04; nfr++;
-      if (!lowQ && !forceHi && nfr > 150 && ema > 0.058) { lowQ = true; resize(); }
+      if (!lowQ && !forceHi && nfr > 150 && ema > 0.058) { lowQ = true; resize(); if (s3ready()) window.Space3D.setQuality(1); }
     }
     raf = requestAnimationFrame(loop);
   }
@@ -1866,11 +1901,11 @@
   }
   function active(v) {
     if (v) {
-      init(); on = true; last = 0; lastKey = ""; resize(); rebuildCards();
+      init(); load3d(); on = true; last = 0; lastKey = ""; resize(); rebuildCards();
       if (REDUCED) staticFrame(); else if (!raf) raf = requestAnimationFrame(loop);
     } else { on = false; if (raf) { cancelAnimationFrame(raf); raf = 0; } }
   }
-  window.SpaceStage = { active: active, update: update };
+  window.SpaceStage = { active: active, update: update, ready3d: function () { if (on && REDUCED) staticFrame(); } };
 })();
 </script>
 <script>
