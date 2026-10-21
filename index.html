@@ -639,7 +639,7 @@
   var cv, ctx, W = 0, H = 0, CX = 0, CY = 0, DPR = 1, raf = 0, on = false, ready = false, last = 0, clock = 0;
   var hud = {}, lblWrap, agents = [], labels = [], meta = {}, px = 0, py = 0, tpx = 0, tpy = 0;
   var sparks = [], smoke = [], stars = [], lights = [], clouds = [], ambient = [], vstate = {};
-  var lastKey = "", SC = 30, lowQ = false, ema = 0.016, nfr = 0;
+  var lastKey = "", SC = 30, lowQ = false, ema = 0.016, nfr = 0, forceHi = /[?&]q=hi/.test(location.search);
 
   /* ---------- affine matrices (3x4, row-major) ---------- */
   function mul(a, b) {
@@ -825,7 +825,9 @@
     var i, j, q, p;
     ctx.lineWidth = 0.7; ctx.lineJoin = "round";
     for (i = 0; i < polys.length; i++) {
-      q = polys[i]; p = q.p;
+      q = polys[i];
+      if (q.fn) { q.fn(); continue; }
+      p = q.p;
       ctx.beginPath(); ctx.moveTo(p[0], p[1]);
       for (j = 2; j < p.length; j += 2) ctx.lineTo(p[j], p[j + 1]);
       ctx.closePath(); ctx.fillStyle = q.c; ctx.fill(); if (!lowQ) { ctx.strokeStyle = q.c; ctx.stroke(); }
@@ -991,181 +993,520 @@
     mesh(G.hrail, place(null, cx, 17.2, -4, 0, 0, PI / 2, 1, 14, 0.5), [60, 66, 82]);
   }
 
-  /* ---------- scaffolds ---------- */
-  function scaffold(side, t) {
-    var sx = side, x0 = sx * 3.9, x1 = sx * 9.3, zc = 1.7, zf = 3.4, z0 = zc - 1.7, z1 = zc + 1.7, H0 = 15.5, k, lv;
-    var post = [28, 32, 44], org = [255, 138, 30];
-    [[x0, z0], [x0, z1], [x1, z0], [x1, z1]].forEach(function (c) { mesh(G.post, place(null, c[0], 0, c[1], 0, 0, 0, 1, H0, 1), post); });
-    var levels = [0.4, 3.0, 6.9, 10.8, 14.4];
-    levels.forEach(function (y, li) {
-      var len = Math.abs(x1 - x0), mx = (x0 + x1) / 2;
-      mesh(G.beam, place(null, mx, y, z0, 0, 0, 0, len, 1, 1), li % 2 ? org : STEEL);
-      mesh(G.beam, place(null, mx, y, z1, 0, 0, 0, len, 1, 1), li % 2 ? org : STEEL);
-      mesh(G.beam, place(null, x0, y, zc, 0, PI / 2, 0, zf, 1, 1), STEEL);
-      mesh(G.beam, place(null, x1, y, zc, 0, PI / 2, 0, zf, 1, 1), STEEL);
+  /* ---------- painted primitives: smooth volumes instead of flat facets ---------- */
+  var WARM = [255, 236, 205], COOL = [64, 112, 220], LS = [-0.55, -0.83];
+  function lerpc(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; }
+  function C(c, k, a) { return "rgba(" + Math.min(255, (c[0] * k) | 0) + "," + Math.min(255, (c[1] * k) | 0) + "," + Math.min(255, (c[2] * k) | 0) + "," + (a === undefined ? 1 : a) + ")"; }
+  function push(z, fn) { polys.push({ z: z, fn: fn }); }
+  function scl(M) { return Math.hypot(M[0], M[4], M[8]); }
+
+  function ball(c, r, col, o) {
+    o = o || {};
+    var p = proj(c); if (!p) return;
+    var R = r * FOCAL / p[2];
+    if (R < 0.5) return;
+    push(p[2] - r * (o.zb === undefined ? 0.6 : o.zb), function () {
+      ctx.save(); ctx.translate(p[0], p[1]);
+      if (o.alpha) ctx.globalAlpha = o.alpha;
+      if (o.sx || o.sy) ctx.scale(o.sx || 1, o.sy || 1);
+      if (o.rot) ctx.rotate(o.rot);
+      if (o.em) {
+        var eg = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 2);
+        eg.addColorStop(0, C(col, 1.25, 1)); eg.addColorStop(0.3, C(col, 1, 0.85)); eg.addColorStop(1, C(col, 1, 0));
+        ctx.fillStyle = eg; ctx.beginPath(); ctx.arc(0, 0, R * 2, 0, TAU); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,.92)"; ctx.beginPath(); ctx.arc(0, 0, R * 0.42, 0, TAU); ctx.fill();
+      } else if (lowQ) {
+        ctx.fillStyle = C(col, 0.9, 1); ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill();
+      } else {
+        var hi = lerpc(col, WARM, 0.55), g = ctx.createRadialGradient(-R * 0.36, -R * 0.4, R * 0.04, 0, 0, R);
+        g.addColorStop(0, C(hi, 1)); g.addColorStop(0.38, C(col, 1)); g.addColorStop(0.78, C(lerpc(col, COOL, 0.25), 0.55)); g.addColorStop(1, C(lerpc(col, COOL, 0.4), 0.3));
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill();
+        var rg = ctx.createRadialGradient(R * 0.52, R * 0.56, R * 0.45, 0, 0, R);
+        rg.addColorStop(0, "rgba(110,180,255,0)"); rg.addColorStop(1, "rgba(110,180,255,.42)");
+        ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill();
+        if (o.spec !== false && R > 3) { ctx.fillStyle = "rgba(255,255,255,.72)"; ctx.beginPath(); ctx.ellipse(-R * 0.37, -R * 0.43, R * 0.2, R * 0.11, -0.7, 0, TAU); ctx.fill(); }
+      }
+      ctx.restore();
     });
-    // diagonal braces on the front face
-    for (k = 0; k < levels.length - 1; k++) {
-      var ya = levels[k], yb = levels[k + 1], dxx = x1 - x0, dyy = yb - ya, ang = Math.atan2(dyy, dxx) * (k % 2 ? 1 : -1) * (sx > 0 ? 1 : 1);
-      var L = Math.hypot(dxx, dyy);
-      mesh(G.beam, place(null, (x0 + x1) / 2, (ya + yb) / 2, z1, 0, 0, k % 2 ? Math.atan2(dyy, dxx) : -Math.atan2(dyy, dxx), L, 0.7, 0.7), [58, 64, 80]);
-    }
-    LEVELS.forEach(function (y) {
-      mesh(G.deck, place(null, (x0 + x1) / 2, y, zc), [58, 64, 80]);
-      // hazard-striped front edge and handrails
-      mesh(G.hrail, place(null, (x0 + x1) / 2, y + 1.0, z1, 0, 0, 0, Math.abs(x1 - x0), 1, 1), YELLOW);
-      mesh(G.hrail, place(null, (x0 + x1) / 2, y + 0.5, z1, 0, 0, 0, Math.abs(x1 - x0), 1, 1), YELLOW);
-      mesh(G.hrail, place(null, x1, y + 1.0, zc, 0, PI / 2, 0, zf, 1, 1), YELLOW);
-      [x0 + sx * 0.3, (x0 + x1) / 2, x1].forEach(function (hx) { mesh(G.hpost, place(null, hx, y, z1), YELLOW); });
-    });
-    // lamps on the posts
-    [[x1, 15.6, z1], [x1, 8, z1]].forEach(function (c) { mesh(G.lampSph, place(null, c[0], c[1], c[2]), [255, 190, 110], 1); });
   }
 
-  /* ---------- rocket ---------- */
+  function tube(a, b, r0, r1, col, o) {
+    o = o || {};
+    var p = proj(a), q = proj(b); if (!p || !q) return;
+    var R0 = r0 * FOCAL / p[2], R1 = r1 * FOCAL / q[2], dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy);
+    if (L < 0.4) { ball(a, r0, col, o); return; }
+    var nx = -dy / L, ny = dx / L;
+    push((p[2] + q[2]) / 2 - Math.max(r0, r1) * (o.zb === undefined ? 0.5 : o.zb), function () {
+      var Rm = (R0 + R1) / 2, mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2;
+      var s = (nx * LS[0] + ny * LS[1]) >= 0 ? 1 : -1;
+      if (lowQ) ctx.fillStyle = ctx.strokeStyle = C(col, 0.85, 1);
+      else {
+        var g = ctx.createLinearGradient(mx - nx * Rm * s, my - ny * Rm * s, mx + nx * Rm * s, my + ny * Rm * s);
+        var hi = lerpc(col, WARM, 0.5);
+        g.addColorStop(0, C(lerpc(col, COOL, 0.6), 0.75)); g.addColorStop(0.1, C(lerpc(col, COOL, 0.3), 0.42)); g.addColorStop(0.5, C(col, 1));
+        g.addColorStop(0.74, C(hi, 1)); g.addColorStop(0.92, C(col, 0.8)); g.addColorStop(1, C(lerpc(col, COOL, 0.5), 0.7));
+        ctx.fillStyle = g; ctx.strokeStyle = g;
+      }
+      if (Math.abs(R0 - R1) < Rm * 0.14 && !o.poly) {
+        ctx.lineCap = o.cap || "round"; ctx.lineWidth = Math.max(1, Rm * 2); ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
+      } else {
+        ctx.beginPath(); ctx.moveTo(p[0] + nx * R0, p[1] + ny * R0); ctx.lineTo(q[0] + nx * R1, q[1] + ny * R1);
+        ctx.lineTo(q[0] - nx * R1, q[1] - ny * R1); ctx.lineTo(p[0] - nx * R0, p[1] - ny * R0); ctx.closePath(); ctx.fill();
+      }
+    });
+  }
+  function hose(a, b, sag, col, w, glowRgb, t) {
+    var p = proj(a), q = proj(b); if (!p || !q) return;
+    push(Math.min(p[2], q[2]) - 0.4, function () {
+      var mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2 + sag * FOCAL / p[2];
+      ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.quadraticCurveTo(mx, my, q[0], q[1]);
+      ctx.strokeStyle = "rgba(14,18,28,.95)"; ctx.lineWidth = w + 2.4; ctx.stroke();
+      ctx.strokeStyle = C(col, 1, 1); ctx.lineWidth = w; ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,.22)"; ctx.lineWidth = Math.max(1, w * 0.3); ctx.stroke();
+      if (glowRgb) {
+        var u = (t * 0.6) % 1, x = (1 - u) * (1 - u) * p[0] + 2 * u * (1 - u) * mx + u * u * q[0], y = (1 - u) * (1 - u) * p[1] + 2 * u * (1 - u) * my + u * u * q[1];
+        ctx.globalCompositeOperation = "lighter"; glow(x, y, 8, glowRgb, 0.9); ctx.globalCompositeOperation = "source-over";
+      }
+    });
+  }
+
+  /* ---------- scaffolds ---------- */
+  function scaffold(side, t) {
+    var sx = side, x0 = sx * 3.9, x1 = sx * 9.3, zc = 1.7, z0 = 0, z1 = 3.4, H0 = 15.6, i;
+    var post = [44, 50, 66], org = [255, 138, 30], steel = [88, 98, 120];
+    [[x0, z0], [x1, z0], [x1, z1]].forEach(function (c) {
+      tube([c[0], 0, c[1]], [c[0], H0, c[1]], 0.15, 0.15, post, { cap: "butt" });
+    });
+    var levels = [0.4, 3.0, 6.9, 10.8, 14.6], li, k;
+    levels.forEach(function (y, n) {
+      var c = n % 2 ? org : steel;
+      tube([x0, y, z0], [x1, y, z0], 0.09, 0.09, c); tube([x0, y, z1], [x1, y, z1], 0.09, 0.09, c);
+      tube([x0, y, z0], [x0, y, z1], 0.08, 0.08, steel); tube([x1, y, z0], [x1, y, z1], 0.08, 0.08, steel);
+    });
+    for (k = 0; k < levels.length - 1; k++) {
+      var ya = levels[k], yb = levels[k + 1];
+      tube(k % 2 ? [x0, ya, z0] : [x1, ya, z0], k % 2 ? [x1, yb, z0] : [x0, yb, z0], 0.055, 0.055, [70, 78, 98]);
+    }
+    LEVELS.forEach(function (y) {
+      mesh(G.deck, place(null, (x0 + x1) / 2, y, zc), [62, 70, 88]);
+      var yy = [y + 1.0, y + 0.5];
+      yy.forEach(function (h) { tube([x0, h, z1], [x1, h, z1], 0.045, 0.045, YELLOW); });
+      tube([x1, y + 1.0, z0], [x1, y + 1.0, z1], 0.045, 0.045, YELLOW);
+      [x0 + sx * 0.3, (x0 + x1) / 2, x1].forEach(function (hx) { tube([hx, y, z1], [hx, y + 1.0, z1], 0.045, 0.045, YELLOW, { cap: "butt" }); });
+      // tread plate + hazard edge painted on the deck top
+      var a = proj([x0, y, z0]), b = proj([x1, y, z0]), c2 = proj([x1, y, z1]), d2 = proj([x0, y, z1]);
+      if (a && b && c2 && d2) push((a[2] + d2[2]) / 2 - 0.2, function () {
+        ctx.save(); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(c2[0], c2[1]); ctx.lineTo(d2[0], d2[1]); ctx.closePath(); ctx.clip();
+        ctx.strokeStyle = "rgba(255,255,255,.07)"; ctx.lineWidth = 1; ctx.beginPath();
+        for (var u = 0; u <= 12; u++) { var f = u / 12; ctx.moveTo(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f); ctx.lineTo(d2[0] + (c2[0] - d2[0]) * f, d2[1] + (c2[1] - d2[1]) * f); }
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(255,196,60,.85)"; ctx.lineWidth = Math.max(2, (c2[1] - b[1]) * 0.07); ctx.beginPath(); ctx.moveTo(d2[0], d2[1] - 1); ctx.lineTo(c2[0], c2[1] - 1); ctx.stroke();
+        ctx.restore();
+      });
+    });
+    [[x1, 15.8, z1], [x1, 8.4, z1], [x0, 12.6, z1]].forEach(function (c, n) { ball(c, 0.16, [255, 190, 110], { em: true }); });
+  }
+
+  /* ---------- rocket (painted) ---------- */
+  var RK = { cx: 0, cz: 0, rise: 0 };
+  function ringAt(y, rad, xo, zo) {
+    var w = [RK.cx + (xo || 0), y + RK.rise, RK.cz + (zo || 0)], p = proj(w); if (!p) return null;
+    var tilt = clamp((cam[1] - w[1]) / Math.max(8, cam[2] - w[2]), -0.34, 0.34);
+    return { x: p[0], y: p[1], z: p[2], R: rad * FOCAL / p[2], sag: rad * FOCAL / p[2] * tilt };
+  }
+  function lerpRing(a, b, f) { return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, R: a.R + (b.R - a.R) * f, sag: a.sag + (b.sag - a.sag) * f }; }
+  function bodyPath(a, b) {
+    ctx.beginPath(); ctx.moveTo(a.x - a.R, a.y); ctx.lineTo(b.x - b.R, b.y);
+    ctx.ellipse(b.x, b.y, b.R, Math.abs(b.sag), 0, PI, 0, b.sag >= 0);
+    ctx.lineTo(a.x + a.R, a.y);
+    ctx.ellipse(a.x, a.y, a.R, Math.abs(a.sag), 0, 0, PI, a.sag < 0);
+    ctx.closePath();
+  }
+  function metalGrad(x0, x1, col) {
+    var g = ctx.createLinearGradient(x0, 0, x1, 0), hi = lerpc(col, WARM, 0.55);
+    g.addColorStop(0, C(lerpc(col, COOL, 0.6), 0.8)); g.addColorStop(0.05, C(lerpc(col, COOL, 0.3), 0.5)); g.addColorStop(0.28, C(hi, 1));
+    g.addColorStop(0.45, C(col, 1)); g.addColorStop(0.75, C(lerpc(col, COOL, 0.2), 0.62)); g.addColorStop(0.94, C(lerpc(col, COOL, 0.35), 0.4)); g.addColorStop(1, C(lerpc(col, COOL, 0.6), 0.6));
+    return g;
+  }
+  function cylSeg(y0, y1, r0, r1, col, decor, xo, zo) {
+    var a = ringAt(y0, r0, xo, zo), b = ringAt(y1, r1, xo, zo); if (!a || !b || Math.abs(a.y - b.y) < 0.5) return;
+    push((a.z + b.z) / 2 - Math.max(r0, r1) * 0.75, function () {
+      ctx.save(); bodyPath(a, b);
+      ctx.fillStyle = lowQ ? C(col, 0.9, 1) : metalGrad(a.x - Math.max(a.R, b.R), a.x + Math.max(a.R, b.R), col); ctx.fill();
+      if (decor && !lowQ) { ctx.clip(); decor(a, b); }
+      ctx.restore();
+    });
+  }
+  function seam(a, b, f, w, rgba) {
+    var r = lerpRing(a, b, f); ctx.beginPath(); ctx.ellipse(r.x, r.y, r.R, Math.abs(r.sag), 0, 0, PI, r.sag < 0);
+    ctx.strokeStyle = rgba || "rgba(10,14,26,.45)"; ctx.lineWidth = w || 1.2; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(r.x, r.y + 1.5, r.R, Math.abs(r.sag), 0, 0, PI, r.sag < 0); ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.lineWidth = 1; ctx.stroke();
+  }
+  function band(a, b, f0, f1, rgba) {
+    var r0 = lerpRing(a, b, f0), r1 = lerpRing(a, b, f1);
+    ctx.beginPath(); ctx.moveTo(r0.x - r0.R, r0.y); ctx.lineTo(r1.x - r1.R, r1.y);
+    ctx.ellipse(r1.x, r1.y, r1.R, Math.abs(r1.sag), 0, PI, 0, r1.sag >= 0); ctx.lineTo(r0.x + r0.R, r0.y);
+    ctx.ellipse(r0.x, r0.y, r0.R, Math.abs(r0.sag), 0, 0, PI, r0.sag < 0); ctx.closePath(); ctx.fillStyle = rgba; ctx.fill();
+  }
+  function noseCone(y0, y1, r0, col, f) {
+    var a = ringAt(y0, r0), tip = ringAt(y1, 0.001); if (!a || !tip) return;
+    push(a.z - r0 * 0.8, function () {
+      ctx.save(); ctx.beginPath(); ctx.moveTo(a.x - a.R, a.y); ctx.quadraticCurveTo(a.x - a.R * 0.55, (a.y + tip.y) / 2 + 4, tip.x, tip.y);
+      ctx.quadraticCurveTo(a.x + a.R * 0.55, (a.y + tip.y) / 2 + 4, a.x + a.R, a.y);
+      ctx.ellipse(a.x, a.y, a.R, Math.abs(a.sag), 0, 0, PI, a.sag < 0); ctx.closePath();
+      ctx.fillStyle = lowQ ? C(col, 0.9, 1) : metalGrad(a.x - a.R, a.x + a.R, col); ctx.fill();
+      if (!lowQ) {
+        ctx.clip(); ctx.strokeStyle = "rgba(255,255,255,.12)"; ctx.lineWidth = 1; ctx.beginPath();
+        for (var u = -4; u <= 4; u++) { ctx.moveTo(tip.x, tip.y); ctx.lineTo(a.x + a.R * u / 4.2, a.y + Math.abs(a.sag)); }
+        ctx.stroke();
+        seam({ x: a.x, y: a.y, R: a.R, sag: a.sag }, { x: tip.x, y: tip.y, R: 0, sag: 0 }, 0.35, 1.2); seam({ x: a.x, y: a.y, R: a.R, sag: a.sag }, { x: tip.x, y: tip.y, R: 0, sag: 0 }, 0.68, 1.2);
+      }
+      ctx.restore();
+    });
+  }
+  function bellShape(xo, zo, y0, y1, rt, rb, burn) {
+    var a = ringAt(y0, rb, xo, zo), b = ringAt(y1, rt, xo, zo); if (!a || !b) return;
+    push((a.z + b.z) / 2 - rb * 0.6, function () {
+      ctx.save(); bodyPath(a, b);
+      var g = ctx.createLinearGradient(a.x - a.R, 0, a.x + a.R, 0);
+      g.addColorStop(0, "#1a2030"); g.addColorStop(0.3, "#8a93a8"); g.addColorStop(0.5, "#4c5468"); g.addColorStop(1, "#141a28");
+      ctx.fillStyle = g; ctx.fill();
+      ctx.clip(); ctx.strokeStyle = "rgba(255,255,255,.14)"; ctx.lineWidth = 1;
+      for (var k = 1; k < 4; k++) { var r = lerpRing(a, b, k / 4); ctx.beginPath(); ctx.ellipse(r.x, r.y, r.R, Math.abs(r.sag), 0, 0, PI, r.sag < 0); ctx.stroke(); }
+      ctx.restore();
+      ctx.beginPath(); ctx.ellipse(a.x, a.y, a.R * 0.92, Math.max(2, Math.abs(a.sag) * 0.9), 0, 0, TAU);
+      ctx.fillStyle = burn > 0 ? "rgba(255,200,120," + (0.55 + 0.4 * burn) + ")" : "rgba(8,10,18,.85)"; ctx.fill();
+    });
+  }
+
   function rocketScene(tc, rise) {
     var shakeX = 0, shakeZ = 0, i;
     if (tc > 39 && tc < 47) { var kk = clamp((tc - 39) / 3, 0, 1) * (tc > T_LAUNCH ? 1.2 : 1); shakeX = (Math.random() - 0.5) * 0.12 * kk; shakeZ = (Math.random() - 0.5) * 0.12 * kk; }
-    var R = place(null, shakeX, rise, shakeZ), buildT = tc < 28 ? tc : 99, fr = [];
+    RK.cx = shakeX; RK.cz = shakeZ; RK.rise = rise;
+    var buildT = tc < 28 ? tc : 99, fr = [];
     for (i = 0; i < STAGES.length; i++) fr.push(ease((buildT - i * SEGROW) / 4.2));
-    var s, f;
-    // three-engine cluster
+    var burn = tc >= 39 && tc < 52 ? clamp((tc - 39) / 3, 0, 1) : 0, t = tNow;
+    // engine cluster + plumbing
     if (fr[0] > 0.01) {
-      [[0, 0], [0.8, 0.5], [-0.8, 0.5], [0, -0.85]].forEach(function (o) {
-        mesh(G.bell, place(R, o[0], 0.1, o[1], 0, 0, 0, 1, fr[0], 1), [58, 62, 76]);
+      [[0, 0], [0.8, 0.5], [-0.8, 0.5], [0, -0.85]].forEach(function (o) { bellShape(o[0], o[1], 0.1, 0.1 + 1.3 * fr[0], 0.34, 0.8, burn); });
+      var e0 = [0, 1.2 + 0, 0];
+      hose([-1.0, 1.35 + rise, 0.6], [-0.35, 0.6 + rise, 0.2], 0.25, [150, 158, 176], 3, null, t);
+      hose([1.0, 1.35 + rise, 0.6], [0.35, 0.6 + rise, 0.2], 0.25, [150, 158, 176], 3, null, t);
+    }
+    // boosters
+    if (fr[1] > 0.3) {
+      var bf = ease((fr[1] - 0.3) / 0.7);
+      [-1, 1].forEach(function (sg) {
+        cylSeg(0.9, 0.9 + 5.7 * bf, 0.58, 0.58, [236, 238, 246], function (a, b) { seam(a, b, 0.5, 1.2); band(a, b, 0.78, 0.9, "rgba(255,120,36,.9)"); }, sg * 2.15, 0);
+        if (bf > 0.98) noseCone(6.6, 7.9, 0.58, [255, 128, 40]);
       });
     }
-    for (i = 0; i < STAGES.length; i++) {
-      s = STAGES[i]; f = fr[i];
-      if (f <= 0.001) continue;
-      mesh(G[s.g], place(R, 0, s.y, 0, 0, 0, 0, 1, f, 1), s.col);
-      if (f < 1) mesh(G.ring, place(R, 0, s.y + s.h * f, 0, 0, tNow * 1.4, 0), [255, 210, 130], 1);
-      else if (i === 1 || i === 2) mesh(G.band, place(R, 0, s.y + s.h - 0.55, 0), DARK);
-      if (i === 1 && f > 0.3) {
-        var bf = ease((f - 0.3) / 0.7);
-        [-1, 1].forEach(function (sg) {
-          mesh(G.boost, place(R, sg * 2.15, 1.4, 0, 0, 0, 0, 1, bf, 1), [232, 235, 244]);
-          mesh(G.boostBell, place(R, sg * 2.15, 0.6, 0, 0, 0, 0, 1, bf, 1), [58, 62, 76]);
-          if (bf > 0.98) mesh(G.boostNose, place(R, sg * 2.15, 6.6, 0), [60, 66, 82]);
-        });
-        [0, 1, 2, 3].forEach(function (q) {
-          var a = q * PI / 2 + PI / 4;
-          mesh(G.fin, place(R, Math.cos(a) * 1.6, 2.4, Math.sin(a) * 1.6, 0, -a, 0, 1, bf, 1), [46, 52, 66]);
-        });
-      }
+    // fins
+    if (fr[1] > 0.3) {
+      var fb = ease((fr[1] - 0.3) / 0.7);
+      [0, 1, 2, 3].forEach(function (q) { var a = q * PI / 2 + PI / 4; mesh(G.fin, place(place(null, shakeX, rise, shakeZ), Math.cos(a) * 1.6, 2.4, Math.sin(a) * 1.6, 0, -a, 0, 1, fb, 1), [58, 66, 86]); });
     }
-    var burn = tc >= 39 && tc < 52 ? clamp((tc - 39) / 3, 0, 1) : 0;
+    var deco = [
+      function (a, b) { band(a, b, 0, 0.5, "rgba(8,12,22,.55)"); seam(a, b, 0.5, 1.4); },
+      function (a, b) { // stage 1
+        band(a, b, 0.0, 0.2, "rgba(6,10,20,.6)"); seam(a, b, 0.2, 1.4); seam(a, b, 0.45, 1.2); seam(a, b, 0.7, 1.2); seam(a, b, 0.97, 1.4);
+        band(a, b, 0.5, 0.58, "rgba(255,120,36,.92)");
+        var r = lerpRing(a, b, 0.33); ctx.fillStyle = "rgba(14,20,34,.8)"; ctx.fillRect(r.x - r.R * 0.55, r.y - r.R * 0.28, r.R * 0.42, r.R * 0.56);
+        ctx.fillStyle = "rgba(255,255,255,.4)"; for (var u = 0; u < 4; u++) ctx.fillRect(r.x - r.R * 0.5 + (u % 2) * r.R * 0.3, r.y - r.R * 0.22 + (u > 1 ? r.R * 0.3 : 0), 2, 2);
+      },
+      function (a, b) { // stage 2 with logotype
+        seam(a, b, 0.02, 1.4); seam(a, b, 0.3, 1.2); seam(a, b, 0.62, 1.2); seam(a, b, 0.97, 1.4);
+        band(a, b, 0.88, 0.97, "rgba(255,120,36,.92)");
+        var r0 = lerpRing(a, b, 0.2), r1 = lerpRing(a, b, 0.84), hh = r0.y - r1.y, fs = Math.max(8, hh / 8.2), L = "VIZKID", k;
+        ctx.font = "800 " + fs.toFixed(1) + "px 'Arial Black', Impact, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillStyle = "rgba(30,38,60,.92)";
+        for (k = 0; k < L.length; k++) ctx.fillText(L[k], r1.x + (r0.x - r1.x) * (k + 0.5) / L.length, r1.y + hh * (k + 0.5) / L.length);
+        var r = lerpRing(a, b, 0.5); ctx.fillStyle = "rgba(255,255,255,.45)"; ctx.fillRect(r.x + r.R * 0.52, r.y, r.R * 0.2, 3);
+      },
+      function (a, b) { seam(a, b, 0.5, 1.2); seam(a, b, 0.97, 1.4); },
+      null
+    ];
+    for (i = 0; i < 4; i++) {
+      var s = STAGES[i], f = fr[i]; if (i === 0 || f <= 0.001) continue;
+      var rb = i === 3 ? 1.45 : 1.45, rt = i === 3 ? 1.3 : 1.45;
+      cylSeg(s.y, s.y + s.h * f, rb, i === 3 ? 1.3 + (1 - f) * 0.15 : rt, s.col, deco[i]);
+      if (f < 1) { var rr = ringAt(s.y + s.h * f, 1.6); if (rr) push(rr.z - 2, function () { ctx.save(); ctx.globalCompositeOperation = "lighter"; ctx.strokeStyle = "rgba(255,210,130,.95)"; ctx.lineWidth = 2.4; ctx.shadowColor = "#ffb050"; ctx.shadowBlur = 12; ctx.beginPath(); ctx.ellipse(rr.x, rr.y, rr.R, Math.abs(rr.sag) + 1, 0, 0, TAU); ctx.stroke(); ctx.restore(); }); }
+    }
+    if (fr[4] > 0.001) noseCone(STAGES[4].y, STAGES[4].y + STAGES[4].h * fr[4], 1.3, [70, 78, 98]);
+    if (fr[4] > 0.98) ball([shakeX, 15.7 + rise, shakeZ], 0.12, [255, 70, 60], { em: true });
+    // flame
     if (burn > 0) {
-      var fl = (3.2 + 4 * burn) * (0.85 + 0.3 * Math.random());
+      var fl = (3.2 + 4.5 * burn) * (0.85 + 0.3 * Math.random());
       [[0, 0], [0.8, 0.5], [-0.8, 0.5], [0, -0.85]].forEach(function (o) {
-        mesh(G.cone, place(R, o[0], 0.15, o[1], 0, 0, 0, 0.95, fl, 0.95), [255, 130, 40], 1);
-        mesh(G.cone, place(R, o[0], 0.15, o[1], 0, 0, 0, 0.5, fl * 0.72, 0.5), [255, 244, 200], 1);
+        var top = proj([o[0] + shakeX, 0.2 + rise, o[1] + shakeZ]), bot = proj([o[0] + shakeX, 0.2 + rise - fl, o[1] + shakeZ]); if (!top || !bot) return;
+        var w = 0.82 * FOCAL / top[2];
+        push(top[2] - 0.5, function () {
+          ctx.save(); ctx.globalCompositeOperation = "lighter";
+          var g = ctx.createLinearGradient(0, top[1], 0, bot[1]); g.addColorStop(0, "rgba(255,250,220,1)"); g.addColorStop(0.25, "rgba(255,170,70,.95)"); g.addColorStop(1, "rgba(255,70,20,0)");
+          ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(top[0] - w, top[1]); ctx.quadraticCurveTo(top[0] - w * 0.9, (top[1] + bot[1]) / 2, bot[0], bot[1]); ctx.quadraticCurveTo(top[0] + w * 0.9, (top[1] + bot[1]) / 2, top[0] + w, top[1]); ctx.closePath(); ctx.fill();
+          glow(top[0], top[1] + 8, w * 2.2, "255,190,100", 0.5); ctx.restore();
+        });
       });
       if (Math.random() < 0.9) smoke.push({ x: (Math.random() - 0.5) * 3, y: Math.max(0.3, rise + 0.3), z: (Math.random() - 0.5) * 2.5, vx: (Math.random() - 0.5) * 7, vy: -1 - Math.random() * 2 + (rise > 8 ? -2 : 0), vz: (Math.random() - 0.5) * 3, age: 0, life: 2.2 + Math.random() * 1.5, r: 18 });
     }
+    // frost venting during the final countdown
+    if (tc > 33 && tc < 42 && Math.random() < 0.5) smoke.push({ x: (Math.random() < 0.5 ? -1 : 1) * (1.2 + Math.random() * 1.2), y: 2 + Math.random() * 5, z: 1.6, vx: (Math.random() - 0.5) * 0.8, vy: 0.3, vz: 0.4, age: 0, life: 1.4, r: 5, vent: true });
+    // umbilical swing arms retract before liftoff
+    var ret = ease((tc - 35) / 5);
+    if (tc < 47 && fr[2] > 0.8) [[-1, 12.2], [1, 8.4]].forEach(function (u, n) {
+      var sgn = u[0], y = u[1], ex = sgn * (1.5 + 2.4 * ret), sx2 = sgn * 3.9;
+      tube([sx2, y, 1.7], [ex, y, 0.8], 0.17, 0.17, [255, 140, 36], { cap: "butt" });
+      ball([ex, y, 0.8], 0.24, [200, 206, 220]);
+      hose([ex, y - 0.1, 0.8], [sgn * 1.3, y - 1.3, 0.9], 0.5 * (1 - ret) + 0.1, [60, 66, 82], 4, "92,200,255", t + n);
+    });
     return { burn: burn, fr: fr };
   }
-  G.cone = null;
   var tNow = 0;
 
-  /* ---------- robots ---------- */
+  /* ---------- robots (smooth, expressive) ---------- */
   function headingStep(key, dir, dt) {
     var st = vstate[key] || (vstate[key] = { h: dir > 0 ? 0 : PI }), target = dir > 0 ? 0 : PI, d = target - st.h;
     d = Math.atan2(Math.sin(d), Math.cos(d));
     st.h += d * Math.min(1, dt * 3.5);
     return st.h;
   }
+  var JOINT = [56, 64, 84];
+  function drawHead(Mh, s, rgb, o) {
+    var cpos = xf(Mh, [0, 0, 0]), r = 0.86 * s, p = proj(cpos); if (!p) return;
+    var R = r * FOCAL / p[2];
+    var fv = xf(Mh, [0, 0, 1]), F = [fv[0] - cpos[0], fv[1] - cpos[1], fv[2] - cpos[2]], fl = Math.hypot(F[0], F[1], F[2]) || 1; F = [F[0] / fl, F[1] / fl, F[2] / fl];
+    var rv = xf(Mh, [1, 0, 0]), Rt = [rv[0] - cpos[0], rv[1] - cpos[1], rv[2] - cpos[2]], rl = Math.hypot(Rt[0], Rt[1], Rt[2]) || 1; Rt = [Rt[0] / rl, Rt[1] / rl, Rt[2] / rl];
+    var tcv = [cam[0] - cpos[0], cam[1] - cpos[1], cam[2] - cpos[2]], tl = Math.hypot(tcv[0], tcv[1], tcv[2]) || 1;
+    var facing = (F[0] * tcv[0] + F[1] * tcv[1] + F[2] * tcv[2]) / tl;
+    var fp = proj([cpos[0] + F[0] * r, cpos[1] + F[1] * r, cpos[2] + F[2] * r]);
+    var fa = fp ? Math.atan2(fp[1] - p[1], fp[0] - p[0]) : 0, fm = fp ? clamp(Math.hypot(fp[0] - p[0], fp[1] - p[1]) / R, 0, 1) : 0;
+    var e1 = proj([cpos[0] + F[0] * r * 0.8 + Rt[0] * r * 0.32, cpos[1] + F[1] * r * 0.8 + Rt[1] * r * 0.32 + r * 0.03, cpos[2] + F[2] * r * 0.8 + Rt[2] * r * 0.32]);
+    var e2 = proj([cpos[0] + F[0] * r * 0.8 - Rt[0] * r * 0.32, cpos[1] + F[1] * r * 0.8 - Rt[1] * r * 0.32 + r * 0.03, cpos[2] + F[2] * r * 0.8 - Rt[2] * r * 0.32]);
+    // ear lights
+    ball([cpos[0] + Rt[0] * r * 1.0, cpos[1] + Rt[1] * r * 1.0, cpos[2] + Rt[2] * r * 1.0], r * 0.24, rgb, { zb: 0.2, sx: 0.8 });
+    ball([cpos[0] - Rt[0] * r * 1.0, cpos[1] - Rt[1] * r * 1.0, cpos[2] - Rt[2] * r * 1.0], r * 0.24, rgb, { zb: 0.2, sx: 0.8 });
+    push(p[2] - r * 0.7, function () {
+      ctx.save(); ctx.translate(p[0], p[1]);
+      var hi = lerpc(WHITE, WARM, 0.5), g = ctx.createRadialGradient(-R * 0.36, -R * 0.42, R * 0.05, 0, 0, R);
+      g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.4, "rgba(236,240,248,1)"); g.addColorStop(0.8, "rgba(150,166,200,.95)"); g.addColorStop(1, "rgba(86,108,164,.95)");
+      ctx.fillStyle = lowQ ? "#dfe5f0" : g; ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill();
+      if (!lowQ) { var rg = ctx.createRadialGradient(R * 0.5, R * 0.56, R * 0.45, 0, 0, R); rg.addColorStop(0, "rgba(110,180,255,0)"); rg.addColorStop(1, "rgba(110,180,255,.4)"); ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill(); }
+      if (facing > -0.05) {
+        var off = fm * R * 0.5, vx = Math.cos(fa) * off, vy = Math.sin(fa) * off, vr = R * 0.76;
+        ctx.save(); ctx.translate(vx, vy); ctx.rotate(fa);
+        var rx = vr * (1 - fm * 0.62), ry = vr * 0.8;
+        var vg = ctx.createLinearGradient(-rx, -ry, rx, ry); vg.addColorStop(0, "#16213f"); vg.addColorStop(0.5, "#060a18"); vg.addColorStop(1, "#0d1730");
+        ctx.fillStyle = vg; ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, TAU); ctx.fill();
+        ctx.strokeStyle = "rgba(" + rgb.join(",") + ",.55)"; ctx.lineWidth = Math.max(1, R * 0.04); ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,.16)"; ctx.beginPath(); ctx.ellipse(-rx * 0.2, -ry * 0.5, rx * 0.5, ry * 0.18, -0.4, 0, TAU); ctx.fill();
+        ctx.restore();
+        // eyes
+        [e1, e2].forEach(function (e) {
+          if (!e) return;
+          var ex = e[0] - p[0], ey = e[1] - p[1] + (o.lookY || 0) * R * 0.05, er = R * 0.15, bl = o.blink;
+          ctx.save(); ctx.translate(p[0] + ex + (o.lookX || 0) * R * 0.05, p[1] + ey);
+          ctx.globalCompositeOperation = "lighter";
+          var gg = ctx.createRadialGradient(0, 0, 0, 0, 0, er * 2.6); gg.addColorStop(0, "rgba(" + rgb.join(",") + ",.75)"); gg.addColorStop(1, "rgba(" + rgb.join(",") + ",0)");
+          ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(0, 0, er * 2.6, 0, TAU); ctx.fill();
+          ctx.globalCompositeOperation = "source-over";
+          ctx.fillStyle = "rgb(" + Math.min(255, rgb[0] + 90) + "," + Math.min(255, rgb[1] + 90) + "," + Math.min(255, rgb[2] + 90) + ")"; ctx.strokeStyle = ctx.fillStyle;
+          if (o.mood === "happy") { ctx.lineWidth = er * 0.7; ctx.lineCap = "round"; ctx.beginPath(); ctx.arc(0, er * 0.4, er * 0.9, PI * 1.12, PI * 1.88); ctx.stroke(); }
+          else if (o.mood === "x") { ctx.lineWidth = er * 0.5; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(-er * 0.7, -er * 0.7); ctx.lineTo(er * 0.7, er * 0.7); ctx.moveTo(er * 0.7, -er * 0.7); ctx.lineTo(-er * 0.7, er * 0.7); ctx.stroke(); }
+          else { ctx.beginPath(); ctx.ellipse(0, 0, er * 0.78 * (0.45 + 0.55 * facing), er * 1.05 * bl, 0, 0, TAU); ctx.fill(); }
+          ctx.restore();
+        });
+      }
+      ctx.restore();
+    });
+  }
 
   /* a chibi robot; origin at the feet, facing +z */
   function robot(root, o) {
-    var rgb = o.rgb, t = o.t, ph = o.ph || 0, ts = o.ts || 1, lite = !!o.lite, i;
-    var blink = (Math.sin(t * 0.9 + ph * 3) > 0.985 || (t * 0.7 + ph) % 4.3 < 0.12) ? 0.12 : 1;
-    var step = o.walk ? Math.sin(t * 6 + ph) * 0.45 : 0;
-    var sg;
+    var rgb = o.rgb, t = o.t, ph = o.ph || 0, ts = o.ts || 1, lite = !!o.lite, s = scl(root), sg;
+    var blink = ((t * 0.7 + ph) % 4.3 < 0.12) ? 0.12 : 1;
+    var step = o.walk ? Math.sin(t * 6 + ph) : 0;
+    // soft contact shadow
+    var fp = proj(xf(root, [0, 0.02, 0]));
+    if (fp && o.shadow !== false) push(fp[2] + 1.2, function () {
+      var rr = 0.95 * s * FOCAL / fp[2]; ctx.save(); ctx.translate(fp[0], fp[1]); ctx.scale(1, 0.3);
+      var g = ctx.createRadialGradient(0, 0, 0, 0, 0, rr); g.addColorStop(0, "rgba(0,0,0,.5)"); g.addColorStop(1, "rgba(0,0,0,0)"); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rr, 0, TAU); ctx.fill(); ctx.restore();
+    });
     for (sg = -1; sg <= 1; sg += 2) {
-      mesh(G.leg, place(root, sg * 0.26, 0, 0, sg * step * 0.8), WHITE);
-      mesh(G.boot, place(root, sg * 0.26, 0, sg * step * 0.35), [90, 98, 118]);
+      var hip = xf(root, [sg * 0.26, 0.92, 0]), ank = xf(root, [sg * 0.26, 0.2 + Math.max(0, step * sg) * 0.15, sg * step * 0.35]);
+      tube(hip, ank, 0.17 * s, 0.15 * s, WHITE);
+      ball(xf(root, [sg * 0.26, 0.13, 0.09 + sg * step * 0.35]), 0.22 * s, [96, 106, 130], { sy: 0.62, sx: 1.1 });
     }
-    mesh(G.torso, root, WHITE);
-    mesh(G.stripe, place(root, 0, 1.38, 0.46), rgb, 0.55);
-    if (!lite) mesh(G.pack, place(root, 0, 1.3, -0.52), [170, 178, 196]);
-    var hd = place(root, 0, 2.5, 0, o.hx || 0, o.hy || 0, 0);
-    mesh(G.head, hd, WHITE);
-    mesh(G.face, place(hd, 0, 0, 0.5, 0, 0, 0, 1, 0.8, 0.55), [14, 20, 36], 0.05);
-    for (sg = -1; sg <= 1; sg += 2) mesh(G.eye, place(hd, sg * 0.21, 0.02, 0.84, 0, 0, 0, 1, blink, 0.6), [Math.min(255, rgb[0] + 70), Math.min(255, rgb[1] + 70), Math.min(255, rgb[2] + 70)], 1);
-    if (!lite) for (sg = -1; sg <= 1; sg += 2) mesh(G.ear, place(hd, sg * 0.82, 0, 0, 0, 0, PI / 2), rgb, 0.6);
-    // arms: A = tool arm on the near side
-    var aT = place(root, ts * 0.58, 1.62, 0, o.rA[0], 0, ts * (o.rA[1] || 0.12));
-    var aO = place(root, -ts * 0.58, 1.62, 0, o.rB[0], 0, -ts * (o.rB[1] || 0.12));
-    mesh(G.arm, aT, WHITE); mesh(G.arm, aO, WHITE);
-    mesh(G.hand, place(aT, 0, -0.84, 0), rgb); mesh(G.hand, place(aO, 0, -0.84, 0), rgb);
-    var hand = xf(place(aT, 0, -0.84, 0), [0, 0, 0]), handO = xf(place(aO, 0, -0.84, 0), [0, 0, 0]), tip = hand;
+    ball(xf(root, [0, 0.95, 0]), 0.42 * s, [214, 220, 234]);
+    tube(xf(root, [0, 0.95, 0]), xf(root, [0, 1.62, 0]), 0.46 * s, 0.42 * s, WHITE);
+    ball(xf(root, [0, 1.42, 0.38]), 0.14 * s, rgb, { em: true });
+    ball(xf(root, [0, 1.72, 0]), 0.2 * s, JOINT);
+    if (!lite) {
+      tube(xf(root, [0, 1.05, -0.55]), xf(root, [0, 1.75, -0.55]), 0.3 * s, 0.3 * s, [168, 176, 196], { zb: -0.2 });
+      ball(xf(root, [0, 0.98, -0.6]), 0.1 * s, [255, 150, 60], { em: true });
+    }
+    // arms (shoulder + elbow)
+    var out = { tip: null }, A = [];
+    [[ts, o.rA, o.bA === undefined ? -0.55 : o.bA], [-ts, o.rB, o.bB === undefined ? -0.45 : o.bB]].forEach(function (d, idx) {
+      var side = d[0], rr = d[1], bend = d[2];
+      var sh = place(root, side * 0.6, 1.62, 0, rr[0], 0, side * (rr[1] || 0.12) * 1.0);
+      var shp = xf(sh, [0, 0, 0]), elb = xf(sh, [0, -0.6, 0]), em = place(sh, 0, -0.6, 0, bend), hand = xf(em, [0, -0.52, 0]);
+      tube(shp, elb, 0.14 * s, 0.125 * s, WHITE); tube(elb, hand, 0.125 * s, 0.105 * s, WHITE);
+      ball(shp, 0.19 * s, JOINT); ball(elb, 0.15 * s, JOINT); ball(hand, 0.18 * s, rgb);
+      A.push({ em: em, hand: hand });
+    });
+    var hand = A[0].hand, handO = A[1].hand, tip = hand;
     if (o.tool === "torch") {
-      var tm = place(aT, 0, -0.84, 0, PI / 2 + 0.15); mesh(G.torch, tm, [88, 94, 110]); tip = xf(place(tm, 0, 0.85, 0), [0, 0, 0]);
+      var tm = place(A[0].em, 0, -0.52, 0, PI / 2 + 0.15); tip = xf(place(tm, 0, 0.85, 0), [0, 0, 0]);
+      tube(hand, tip, 0.065 * s, 0.05 * s, [92, 98, 116]); ball(tip, 0.08 * s, [255, 190, 90]);
     } else if (o.tool === "wrench") {
-      var wm = place(aT, 0, -0.84, 0, PI / 2 + 0.1); mesh(G.wrench, wm, [196, 202, 214]); mesh(G.wrenchHead, wm, [196, 202, 214]); tip = xf(place(wm, 0, 1.05, 0), [0, 0, 0]);
+      var wm = place(A[0].em, 0, -0.52, 0, PI / 2 + 0.1); tip = xf(place(wm, 0, 1.0, 0), [0, 0, 0]);
+      tube(hand, tip, 0.06 * s, 0.06 * s, [200, 206, 218]); ball(tip, 0.18 * s, [200, 206, 218], { sx: 1.4, sy: 0.8 });
     } else if (o.tool === "tablet") {
-      var tbm = place(aO, 0, -0.9, 0.12, -0.6); mesh(G.tablet, tbm, [30, 34, 46]);
+      var tbm = place(A[1].em, 0, -0.6, 0.12, -0.6); mesh(G.tablet, tbm, [30, 34, 46]);
       mesh(G.screen, place(tbm, 0, 0, 0.045), [90, 190, 255], 0.8 + 0.2 * Math.sin(t * 6 + ph)); tip = xf(tbm, [0, 0, 0]);
     }
-    return { tip: tip, head: xf(root, [0, 3.45, 0]), pack: xf(root, [0, 1.5, -0.6]), hand: hand, handO: handO };
+    var Mh = place(root, 0, 2.55, 0, o.hx || 0, o.hy || 0, 0);
+    drawHead(Mh, s, rgb, { blink: blink, mood: o.mood, lookX: o.lookX, lookY: o.lookY });
+    // antenna
+    var ant0 = xf(Mh, [0, 0.82, 0]), ant1 = xf(Mh, [Math.sin(t * 2 + ph) * 0.12, 1.3, 0]);
+    tube(ant0, ant1, 0.035 * s, 0.03 * s, [170, 178, 196]); ball(ant1, 0.1 * s, rgb, { em: true });
+    return { tip: tip, head: xf(root, [0, 3.55 * 1, 0]), pack: xf(root, [0, 1.5, -0.6]), hand: hand, handO: handO };
   }
 
-  var poseState = [];
   function agentRobot(i, a, t, dt, off) {
     var work = a.work, ph = i * 1.9, out;
+    var mood = a.status === "error" ? "x" : (work > 0.7 ? "happy" : "oval");
     if (i <= 3) {
-      var pl = PLAT[i], side = pl.side, x = pl.x + side * off, yawBase = -side * 0.8, ts = side < 0 ? -1 : 1;
-      var sway = Math.sin(t * 0.8 + ph) * 0.03;
-      var root = place(null, x, pl.y + 0.02, pl.z, 0, yawBase, sway, 1.15, 1.15, 1.15), o = { rgb: a.rgb, t: t, ph: ph, ts: ts, rA: [-0.2, 0.1], rB: [-0.2, 0.1], tool: "none" };
+      var pl = PLAT[i], side = pl.side, x = pl.x + side * off, yawBase = -side * 0.55, ts = side < 0 ? -1 : 1;
+      var sway = Math.sin(t * 0.8 + ph) * 0.03, lean = 0;
+      var o = { rgb: a.rgb, t: t, ph: ph, ts: ts, rA: [-0.2, 0.1], rB: [-0.2, 0.1], tool: "none", mood: mood };
       var sw = Math.sin(t * (3 + 5 * work) + ph);
-      if (i === 0) { o.tool = "torch"; o.rA = [-1.45 + sw * 0.1 * work - 0.1, 0.08]; o.rB = [-0.7, 0.3]; o.hx = 0.18; o.hy = ts * 0.35; }
-      else if (i === 1) { o.tool = "wrench"; o.rA = [-0.8 - 0.6 * (0.3 + 0.7 * work) * (0.5 + 0.5 * Math.sin(t * (1.6 + 2 * work) + ph)), 0.05]; o.rB = [-0.5 + Math.sin(t * 1.1) * 0.15, 0.3]; o.hx = 0.35; o.hy = ts * 0.4; root = place(null, x, pl.y + 0.02, pl.z, 0.12, yawBase, sway, 1.15, 1.15, 1.15); }
-      else if (i === 2) { o.tool = "none"; o.rA = [-1.1 + Math.sin(t * 2.2 + ph) * 0.18 * (0.4 + work), 0.08]; o.rB = [-1.1 + Math.cos(t * 2.2 + ph) * 0.18 * (0.4 + work), 0.08]; o.hx = 0.1; o.hy = ts * 0.5; }
-      else { o.tool = "tablet"; o.rA = [-1.15 + Math.sin(t * 7) * 0.08 * (0.3 + work), 0.1]; o.rB = [-1.0, 0.2]; o.hx = 0.2; o.hy = ts * 0.2 + Math.sin(t * 0.7 + ph) * 0.5; }
-      if (a.status === "off") { o.rA = [-0.1, 0.1]; o.rB = [-0.1, 0.1]; o.tool = "none"; }
-      out = robot(root, o);
+      if (i === 0) { o.tool = "torch"; o.rA = [-1.25 + sw * 0.1 * work, 0.08]; o.rB = [-0.7, 0.3]; o.hx = 0.15; o.hy = ts * 0.3; o.bA = -0.6; }
+      else if (i === 1) { o.tool = "wrench"; o.rA = [-0.9 - 0.5 * (0.3 + 0.7 * work) * (0.5 + 0.5 * Math.sin(t * (1.6 + 2 * work) + ph)), 0.05]; o.rB = [-0.5 + Math.sin(t * 1.1) * 0.15, 0.3]; o.hx = 0.3; o.hy = ts * 0.35; lean = 0.12; o.bA = -0.5; }
+      else if (i === 2) { o.rA = [-1.0 + Math.sin(t * 2.2 + ph) * 0.18 * (0.4 + work), 0.08]; o.rB = [-1.0 + Math.cos(t * 2.2 + ph) * 0.18 * (0.4 + work), 0.08]; o.hx = 0.1; o.hy = ts * 0.45; }
+      else { o.tool = "tablet"; o.rA = [-1.1 + Math.sin(t * 7) * 0.08 * (0.3 + work), 0.1]; o.rB = [-0.9, 0.2]; o.hx = 0.18; o.hy = ts * 0.15 + Math.sin(t * 0.7 + ph) * 0.45; }
+      if (a.status === "off") { o.rA = [-0.1, 0.1]; o.rB = [-0.1, 0.1]; o.tool = "none"; o.mood = "x"; }
+      o.lookX = Math.sin(t * 0.6 + ph) * 0.6; o.lookY = 0.2;
+      out = robot(place(null, x, pl.y + 0.02, pl.z, lean, yawBase, sway, 1.15, 1.15, 1.15), o);
       out.kind = ["weld", "wrench", "cable", "scan"][i];
       return out;
     }
-    if (i === 4) { // forklift driver
+    if (i === 4) {
       var fx = 11 * Math.sin(t * 0.21), vx = Math.cos(t * 0.21), hd = headingStep("fk", vx >= 0 ? 1 : -1, dt);
-      var fb = place(null, fx, 0, -4.5, 0, -hd + 0.0, 0, 1.15, 1.15, 1.15);
+      var fb = place(null, fx, 0, -4.5, 0, -hd, 0, 1.15, 1.15, 1.15);
       mesh(G.fbody, fb, [255, 150, 36]);
       [[-0.9, 0.85], [0.9, 0.85], [-0.9, -0.85], [0.9, -0.85]].forEach(function (w) { mesh(G.wheel, place(fb, w[0], 0.42, w[1], PI / 2), [30, 34, 44]); });
-      mesh(G.fmast, fb, [60, 66, 82]);
-      [[-0.55], [0.55]].forEach(function (zz) { mesh(G.fork, place(fb, 2.1, 0.4, zz[0]), [190, 196, 208]); });
+      mesh(G.fmast, fb, [70, 76, 94]);
+      [-0.55, 0.55].forEach(function (zz) { mesh(G.fork, place(fb, 2.1, 0.4, zz), [190, 196, 208]); });
       var lift = 1.4 + 0.9 * (0.5 + 0.5 * Math.sin(t * 0.7));
       mesh(G.crate, place(fb, 2.0, lift, 0, 0, 0, 0, 1.3, 1.1, 1.3), [196, 150, 90]);
       [[-0.9, -0.7], [-0.9, 0.7], [0.4, -0.7], [0.4, 0.7]].forEach(function (p) { mesh(G.fpost, place(fb, p[0], 0.9, p[1]), [255, 196, 60]); });
-      var rm = place(fb, -0.3, 0.8, 0, 0, PI / 2 - 0.5, 0, 0.62, 0.62, 0.62);
-      out = robot(rm, { rgb: a.rgb, t: t, ph: ph, ts: 1, rA: [-1.2, 0.2], rB: [-1.2, 0.2], tool: "none", lite: false, hx: 0.1, hy: Math.sin(t * 0.5) * 0.3 });
+      out = robot(place(fb, -0.3, 0.8, 0, 0, PI / 2 - 0.5, 0, 0.62, 0.62, 0.62), { rgb: a.rgb, t: t, ph: ph, ts: 1, rA: [-1.2, 0.2], rB: [-1.2, 0.2], tool: "none", hx: 0.1, hy: Math.sin(t * 0.5) * 0.3, mood: mood, shadow: false });
       out.kind = "fork";
       return out;
     }
-    // hover pod pilot
     var ptx = -12 + 3.4 * Math.sin(t * 0.23), pdx = Math.cos(t * 0.23), ph2 = headingStep("pod", pdx >= 0 ? 1 : -1, dt);
     var py = 10 + 1.2 * Math.sin(t * 0.5), pz = 5 + 2 * Math.cos(t * 0.23);
     var pb = place(null, ptx, py, pz, 0, -ph2, 0.06 * Math.sin(t * 0.9));
-    mesh(G.pod, pb, [236, 240, 248]);
-    mesh(G.podNose, place(pb, 1.7, 0, 0, 0, 0, 0, 0.9, 0.75, 1), [226, 230, 240]);
-    mesh(G.canopy, place(pb, 0.4, 0.7, 0, 0, 0, 0, 1, 0.8, 1), [90, 180, 255], 0.55);
-    mesh(G.thruster, place(pb, -1.8, 0, 0.6, 0, 0, PI / 2), [60, 64, 80]);
-    mesh(G.thruster, place(pb, -1.8, 0, -0.6, 0, 0, PI / 2), [60, 64, 80]);
-    var pr = place(pb, 0.4, -0.45, 0, 0, PI / 2 - 0.4, 0, 0.5, 0.5, 0.5);
-    out = robot(pr, { rgb: a.rgb, t: t, ph: ph, ts: 1, rA: [-0.9, 0.2], rB: [-0.9, 0.2], tool: "none", lite: true, hx: 0, hy: Math.sin(t * 0.8) * 0.4 });
+    tube(xf(pb, [-1.5, 0, 0]), xf(pb, [1.3, 0, 0]), 0.85, 0.85, [236, 240, 248], { cap: "butt" });
+    ball(xf(pb, [1.35, 0, 0]), 0.86, [226, 230, 240], { sx: 0.95 });
+    ball(xf(pb, [-1.55, 0, 0]), 0.8, [150, 158, 176], { sx: 0.6 });
+    tube(xf(pb, [-1.2, -0.62, 0]), xf(pb, [1.0, -0.62, 0]), 0.14, 0.14, [255, 140, 36]);
+    [0.6, -0.6].forEach(function (zz) { tube(xf(pb, [-1.75, 0, zz]), xf(pb, [-2.1, 0, zz]), 0.32, 0.4, [60, 64, 80], { poly: true }); });
+    out = robot(place(pb, 0.45, -0.3, 0, 0, PI / 2 - 0.4, 0, 0.5, 0.5, 0.5), { rgb: a.rgb, t: t, ph: ph, ts: 1, rA: [-0.9, 0.2], rB: [-0.9, 0.2], tool: "none", lite: true, hx: 0, hy: Math.sin(t * 0.8) * 0.4, mood: mood, shadow: false });
+    ball(xf(pb, [0.5, 0.45, 0.2]), 1.0, [130, 205, 255], { sy: 0.85, alpha: 0.38, zb: 1.6, spec: true });
     out.kind = "pod"; out.thr = [xf(pb, [-2.2, 0, 0.6]), xf(pb, [-2.2, 0, -0.6])];
     return out;
   }
 
   function ambientBots(t, dt) {
     var k;
-    for (k = 0; k < 3; k++) {
+    for (k = 0; k < ambient.length; k++) {
       var b = ambient[k], x = b.cx + b.amp * Math.sin(t * b.sp + b.ph), vx = Math.cos(t * b.sp + b.ph), hdg = headingStep("amb" + k, vx >= 0 ? 1 : -1, dt);
-      var root = place(null, x, 0, b.z, 0, PI / 2 - hdg - 0.5 * 0, 0, 0.8, 0.8, 0.8);
-      var r = robot(root, { rgb: b.rgb, t: t, ph: b.ph, ts: 1, rA: [-0.6, 0.1], rB: [-0.6, 0.1], tool: "none", lite: true, walk: true });
-      if (k !== 1) mesh(G.crate, place(root, 0, 1.0, 0.9, 0, 0, 0, 0.9, 0.9, 0.9), b.crate);
+      var root = place(null, x, b.y || 0, b.z, 0, PI / 2 - hdg - 0.4, 0, b.s || 0.8, b.s || 0.8, b.s || 0.8);
+      robot(root, { rgb: b.rgb, t: t, ph: b.ph, ts: 1, rA: [-0.6, 0.1], rB: [-0.6, 0.1], tool: "none", lite: true, walk: true, mood: "happy", hy: 0.3 });
+      if (b.crate) mesh(G.crate, place(root, 0, 1.0, 0.9, 0, 0, 0, 0.9, 0.9, 0.9), b.crate);
     }
+  }
+  function droneScene(tc, t) {
+    var k;
+    for (k = 0; k < 3; k++) {
+      var a = t * (0.7 + k * 0.25) + k * 2.1, rad = 3.6 + k * 1.1, y = (tc < 28 ? 2 + clamp(tc / 28, 0, 1) * 12 : 8) * (0.55 + 0.45 * Math.cos(k * 2 + t * 0.2)) + k * 1.2;
+      var c = [Math.cos(a) * rad, y, Math.sin(a) * rad * 0.8 + 1];
+      var pc = proj(c); if (!pc) continue;
+      ball(c, 0.42, [236, 240, 250]);
+      ball([c[0], c[1] - 0.12, c[2] + 0.32], 0.14, [10, 14, 26], { sx: 1.7, sy: 0.7, spec: false, zb: 0.1 });
+      var blink = Math.sin(t * 6 + k * 2) > 0.2;
+      ball([c[0] + 0.45, c[1] + 0.05, c[2]], 0.09, blink ? [255, 70, 60] : [120, 30, 30], { em: blink });
+      var R = 0.62 * FOCAL / pc[2];
+      push(pc[2] - 0.5, function () { ctx.save(); ctx.strokeStyle = "rgba(170,200,240,.5)"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.ellipse(pc[0], pc[1] - R * 0.5, R * 1.1, R * 0.16, 0, 0, TAU); ctx.stroke(); ctx.restore(); });
+      push(pc[2] + 0.5, function () { ctx.save(); ctx.globalCompositeOperation = "lighter"; glow(pc[0], pc[1] + R * 0.8, R * 1.1, "92,200,255", 0.25); ctx.restore(); });
+    }
+  }
+
+  /* ---------- extra hangar dressing ---------- */
+  var dust = [];
+  function hangarExtras(t) {
+    var i, p, q;
+    // volumetric light shafts from the ceiling lamps
+    ctx.globalCompositeOperation = "lighter";
+    lamps.forEach(function (l, k) {
+      if (l[1] < 18) return;
+      var a = P(l[0], l[1] - 0.6, l[2]), b1 = P(l[0] - 3.4, 0, l[2] + 1.5), b2 = P(l[0] + 3.4, 0, l[2] + 1.5);
+      if (!a || !b1 || !b2) return;
+      var g = ctx.createLinearGradient(0, a[1], 0, b1[1]);
+      g.addColorStop(0, "rgba(255,170,80," + (0.2 + 0.04 * Math.sin(t * 1.6 + k)) + ")"); g.addColorStop(1, "rgba(255,170,80,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(a[0] - 4, a[1]); ctx.lineTo(a[0] + 4, a[1]); ctx.lineTo(b2[0], b2[1]); ctx.lineTo(b1[0], b1[1]); ctx.closePath(); ctx.fill();
+    });
+    ctx.globalCompositeOperation = "source-over";
+    // wall pipes
+    [[26.5, 0.7, [78, 88, 112]], [21.5, 0.5, [96, 74, 56]], [10.5, 0.5, [78, 88, 112]]].forEach(function (d) {
+      var a = P(-70, d[0], -15.7), b = P(70, d[0], -15.7); if (!a || !b) return;
+      var R = d[1] * FOCAL / a[2], g = ctx.createLinearGradient(0, a[1] - R, 0, a[1] + R), c = d[2];
+      g.addColorStop(0, C(c, 0.4, 1)); g.addColorStop(0.3, C(lerpc(c, WARM, 0.5), 1)); g.addColorStop(0.55, C(c, 1)); g.addColorStop(1, C(c, 0.3, 1));
+      ctx.fillStyle = g; ctx.fillRect(a[0], a[1] - R, b[0] - a[0], R * 2);
+    });
+    // holo monitors with live graphs
+    [[-9, 15.5, -3, 20.5, "92,200,255"], [3.5, 16, 9.5, 20.5, "255,150,60"]].forEach(function (s, n) {
+      var a = P(s[0], s[3], -15.4), b = P(s[2], s[1], -15.4); if (!a || !b) return;
+      var w = b[0] - a[0], h = b[1] - a[1];
+      ctx.fillStyle = "rgba(6,14,30,.9)"; ctx.fillRect(a[0], a[1], w, h);
+      ctx.strokeStyle = "rgba(" + s[4] + ",.8)"; ctx.lineWidth = 2; ctx.shadowColor = "rgb(" + s[4] + ")"; ctx.shadowBlur = 10; ctx.strokeRect(a[0], a[1], w, h); ctx.shadowBlur = 0;
+      ctx.strokeStyle = "rgba(" + s[4] + ",.9)"; ctx.lineWidth = 1.6; ctx.beginPath();
+      for (i = 0; i <= 28; i++) { var xx = a[0] + w * (0.06 + 0.88 * i / 28), yy = a[1] + h * (0.4 + 0.18 * Math.sin(i * 0.7 + t * (1.2 + n)) + 0.1 * Math.sin(i * 1.9 - t * 2)); if (i) ctx.lineTo(xx, yy); else ctx.moveTo(xx, yy); }
+      ctx.stroke();
+      ctx.fillStyle = "rgba(" + s[4] + ",.55)";
+      for (i = 0; i < 8; i++) { var bh = h * 0.22 * (0.4 + 0.6 * Math.abs(Math.sin(t * 1.4 + i + n))); ctx.fillRect(a[0] + w * (0.08 + i * 0.1), a[1] + h * 0.92 - bh, w * 0.06, bh); }
+      ctx.font = "700 " + Math.max(8, h * 0.1).toFixed(0) + "px ui-monospace, monospace"; ctx.fillText(n ? "FUEL · TANK 3" : "STRUCT · LOAD", a[0] + w * 0.06, a[1] + h * 0.16);
+    });
+    // BAY sign + hazard stripes
+    var sa = P(19, 3.6, -15.5), sb = P(27, 1.2, -15.5);
+    if (sa && sb) {
+      ctx.fillStyle = "rgba(255,196,60,.12)"; ctx.fillRect(sa[0], sa[1], sb[0] - sa[0], sb[1] - sa[1]);
+      ctx.strokeStyle = "rgba(255,196,60,.6)"; ctx.lineWidth = 2; ctx.strokeRect(sa[0], sa[1], sb[0] - sa[0], sb[1] - sa[1]);
+      ctx.fillStyle = "rgba(255,196,60,.8)"; ctx.font = "800 " + Math.max(10, (sb[1] - sa[1]) * 0.6).toFixed(0) + "px 'Arial Black', Impact, sans-serif"; ctx.textBaseline = "middle"; ctx.fillText("BAY 01", sa[0] + 10, (sa[1] + sb[1]) / 2);
+    }
+    var h0 = P(-70, 0.9, -15.6), h1 = P(70, 0.9, -15.6), h2 = P(-70, 0, -15.6);
+    if (h0 && h1 && h2) {
+      var hh = h2[1] - h0[1], x = 0; ctx.save(); ctx.beginPath(); ctx.rect(0, h0[1], W, hh); ctx.clip();
+      for (i = -40; i < 60; i++) { var xa = CX + (i * 3 - 0) * (FOCAL / h0[2]) * 0.9; ctx.fillStyle = i % 2 ? "rgba(255,196,60,.5)" : "rgba(10,12,20,.5)"; ctx.beginPath(); ctx.moveTo(xa, h0[1]); ctx.lineTo(xa + 2.2 * FOCAL / h0[2], h0[1]); ctx.lineTo(xa + 2.2 * FOCAL / h0[2] - hh, h2[1]); ctx.lineTo(xa - hh, h2[1]); ctx.closePath(); ctx.fill(); }
+      ctx.restore();
+    }
+    // flashing beacons
+    var urgent = (tNow % CYC) > 32 && (tNow % CYC) < 47;
+    [[-13.5, 12, -15], [9, 12, -15], [-30, 8, -15], [30, 8, -15]].forEach(function (c, n) {
+      var pp = P(c[0], c[1], c[2]); if (!pp) return;
+      var on2 = urgent ? Math.sin(t * 9 + n) > 0 : Math.sin(t * 2 + n * 2) > 0.6;
+      ctx.globalCompositeOperation = "lighter"; glow(pp[0], pp[1], (on2 ? 34 : 14) * FOCAL / 900, urgent ? "255,60,50" : "255,160,60", on2 ? 0.9 : 0.35); ctx.globalCompositeOperation = "source-over";
+    });
+    // drifting dust motes
+    if (!dust.length) for (i = 0; i < 46; i++) dust.push({ x: (Math.random() - 0.5) * 36, y: Math.random() * 18, z: -8 + Math.random() * 14, sp: 0.15 + Math.random() * 0.35, ph: Math.random() * 6 });
+    ctx.globalCompositeOperation = "lighter";
+    dust.forEach(function (d) {
+      var pp = P(d.x + Math.sin(t * d.sp + d.ph) * 1.2, (d.y + t * d.sp * 0.6) % 18, d.z); if (!pp) return;
+      ctx.fillStyle = "rgba(255,210,150," + (0.25 + 0.25 * Math.sin(t * 2 + d.ph)) + ")"; ctx.fillRect(pp[0], pp[1], 1.8, 1.8);
+    });
+    ctx.globalCompositeOperation = "source-over";
   }
 
   /* ---------- overlays ---------- */
@@ -1223,18 +1564,6 @@
       glow(tgt[0], tgt[1], 12, a.rgbStr, 0.4 + 0.3 * Math.sin(t * 5));
       ctx.globalCompositeOperation = "source-over";
     });
-    // rocket logotype
-    var lf = scene.fr[2];
-    if (lf > 0.9) {
-      var top = proj([0, 9.4 + scene.rise, 1.46]), bot = proj([0, 5.0 + scene.rise, 1.46]);
-      if (top && bot) {
-        var hh = bot[1] - top[1], fs = Math.max(8, hh / 9.5), letters = "VIZKID", k;
-        ctx.save(); ctx.font = "800 " + fs.toFixed(1) + "px 'Arial Black', Impact, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.fillStyle = "rgba(40,48,70,.9)";
-        for (k = 0; k < letters.length; k++) ctx.fillText(letters[k], top[0], top[1] + hh * (k + 0.5) / letters.length);
-        ctx.restore();
-      }
-    }
   }
 
   function placeLabels() {
@@ -1265,6 +1594,7 @@
     FOCAL = SC * 27;
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     drawHangar(t, rise);
+    hangarExtras(t);
     ceilingScene(t);
     scaffold(-1, t); scaffold(1, t);
     var rs = rocketScene(tc, rise);
@@ -1296,11 +1626,6 @@
     ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
     placeLabels();
     updateHud(tc, ph, rs, rise, tl);
-  }
-  function droneScene(tc, t) {
-    var top = tc < 28 ? 1.5 + clamp(tc / 28, 0, 1) * 13 : 8, a = t * 0.9, M = place(null, Math.cos(a) * 3.4, top, Math.sin(a) * 3.4, 0, -a, 0);
-    mesh(G.small, M, [236, 240, 250]);
-    mesh(G.small, place(M, 0, 0.45, 0, 0, 0, 0, 0.5, 0.35, 0.5), [255, 128, 40], 0.9);
   }
 
   /* ---------- HUD ---------- */
@@ -1449,7 +1774,7 @@
     if (vis) {
       clock += dt; frame(clock, dt, ts / 1000);
       ema = ema * 0.96 + dt * 0.04; nfr++;
-      if (!lowQ && nfr > 120 && ema > 0.034) { lowQ = true; resize(); }
+      if (!lowQ && !forceHi && nfr > 150 && ema > 0.058) { lowQ = true; resize(); }
     }
     raf = requestAnimationFrame(loop);
   }
@@ -1469,7 +1794,9 @@
     ambient = [
       { cx: -2, amp: 13, z: -8, sp: 0.31, ph: 0.4, rgb: [150, 200, 255], crate: [196, 150, 90] },
       { cx: 4, amp: 12, z: -10.5, sp: 0.27, ph: 2.2, rgb: [255, 190, 110], crate: [90, 100, 120] },
-      { cx: 0, amp: 14, z: -13, sp: 0.23, ph: 4.0, rgb: [150, 255, 190], crate: [255, 150, 36] }
+      { cx: 0, amp: 14, z: -13, sp: 0.23, ph: 4.0, rgb: [150, 255, 190], crate: [255, 150, 36] },
+      { cx: -6.6, amp: 1.7, z: 1.9, y: 6.92, s: 0.72, sp: 0.5, ph: 1.3, rgb: [255, 150, 200], crate: [255, 150, 36] },
+      { cx: 6.6, amp: 1.7, z: 1.9, y: 3.02, s: 0.72, sp: 0.42, ph: 3.1, rgb: [190, 160, 255], crate: null }
     ];
     host.addEventListener("pointermove", function (e) {
       var r = host.getBoundingClientRect();
