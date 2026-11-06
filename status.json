@@ -2,13 +2,13 @@
   "agent": "Daily Email Brief Agent",
   "schedule": "Every day at 9:30 AM IST",
   "state": "success",
-  "updated_at": "2026-11-05T04:23:00Z",
-  "next_run": "2026-11-06T04:00:00Z",
+  "updated_at": "2026-11-06T04:23:00Z",
+  "next_run": "2026-11-07T04:00:00Z",
   "last_run": {
-    "started_at": "2026-11-05T04:06:51Z",
-    "finished_at": "2026-11-05T04:07:20Z",
+    "started_at": "2026-11-06T04:06:51Z",
+    "finished_at": "2026-11-06T04:07:33Z",
     "status": "success",
-    "threads_reviewed": 11,
+    "threads_reviewed": 15,
     "unread": null,
     "delivered_to": "email",
     "steps": [
@@ -30,12 +30,18 @@
       }
     ],
     "summary": {
-      "needs_action": 2,
-      "key_updates": 4,
+      "needs_action": 5,
+      "key_updates": 6,
       "fyi": 1
     }
   },
   "history": [
+    {
+      "date": "2026-11-06",
+      "status": "success",
+      "threads_reviewed": 15,
+      "needs_action": 5
+    },
     {
       "date": "2026-11-05",
       "status": "success",
